@@ -1,0 +1,248 @@
+# 좀비 아포칼립스 설정
+# 수정한 뒤 /apocalypse reload 로 다시 불러온다. 문법 오류가 있으면 이전 설정을 유지한다.
+# 잘못된 값이나 모르는 키는 서버 로그에 경고를 남기고 기본값을 쓴다.
+# 시간 단위: ticks는 1초 = 20틱, seconds는 초.
+
+start:
+  # /apoc start 후 "좀비 아포칼립스" 타이틀과 3, 2, 1 카운트다운을 거쳐 시작할 때까지의 시간(초). 0이면 바로 시작.
+  # 10초보다 길게 하면 남은 시간 보스바와 채팅 안내도 나온다.
+  # 명령어로 그때그때 정할 수도 있다: /apoc start 60, /apoc start now
+  grace-seconds: 6
+
+replace:
+  # 이 원인으로 스폰되는 적대적 몹을 좀비로 바꾼다. 좀비 계열은 이 원인으로 스폰될 때 커스텀 타입을 받는다.
+  reasons: [NATURAL, SPAWNER, TRIAL_SPAWNER, PATROL]
+  # 좀비로 바꾸지 않는 몹
+  exclude: [ENDER_DRAGON, WITHER, WARDEN, ELDER_GUARDIAN]
+  # 스포너(일반, 시련) 16블록 안의 커스텀 좀비가 이 수 이상이면 스폰을 막기만 하고 좀비를 새로 만들지 않는다
+  spawner-nearby-cap: 12
+
+spawning:
+  # 아포칼립스가 켜진 월드의 바닐라 몬스터 스폰 상한과 스폰 주기(틱)
+  monster-spawn-limit: 150
+  ticks-per-monster-spawn: 1
+  # 밝기와 시간에 상관없이 플레이어 주변에 좀비를 추가로 스폰한다
+  extra:
+    enabled: true
+    interval-ticks: 100
+    per-player-cap: 25        # 한 지점 주변(count-radius) 커스텀 좀비가 이 수 이상이면 자연 스폰·대체·추가 스폰을 멈춘다. 날짜와 블러드문에 따라 늘어난다
+    global-cap: 300           # 서버 전체 커스텀 좀비 상한
+    count-radius: 48
+    per-attempt: 3
+    min-distance: 20
+    max-distance: 40
+
+zombie:
+  follow-range: 40            # 플레이어를 쫓아오는 거리
+  show-type-name: false       # true면 머리 위에 [타입] 좀비 이름표를 띄운다
+
+# weight: 랜덤 가중치(0이면 안 나옴), min-day: 이 날짜부터 등장
+types:
+  default:
+    weight: 70
+    min-day: 0
+  sprinter:
+    weight: 30
+    min-day: 0
+    speed-multiplier: 1.6
+  boomer:                     # 죽은 자리에서 폭발
+    weight: 8
+    min-day: 2
+    power: 3.0
+    break-blocks: true
+    fuse-ticks: 20
+  bomber:                     # 크리퍼처럼 다가와 자폭
+    weight: 8
+    min-day: 2
+    trigger-distance: 2.5
+    fuse-ticks: 30
+    power: 3.0
+    break-blocks: true
+  thrower:                    # 맞은 플레이어를 날려버림
+    weight: 7
+    min-day: 2
+    horizontal: 1.6
+    vertical: 1.0
+  toxic:                      # 타격 시 독과 허기
+    weight: 8
+    min-day: 1
+    poison-seconds: 5
+    hunger-seconds: 8
+  frost:                      # 타격 시 얼어붙음
+    weight: 7
+    min-day: 2
+    freeze-ticks: 160
+    slowness-seconds: 4
+  jumper:                     # 높은 곳이나 멀리 있는 플레이어에게 뛰어듦
+    weight: 7
+    min-day: 3
+    cooldown-ticks: 80
+    min-distance: 4.0
+    max-distance: 10.0
+  ninja:                      # 평소에는 투명
+    weight: 6
+    min-day: 3
+    reveal-distance: 4.0
+    hide-after-ticks: 100
+  grabber:                    # 블리츠크랭크처럼 갈고리로 끌어옴 (피할 수 있음)
+    weight: 6
+    min-day: 3
+    range: 16.0
+    hook-speed: 1.2
+    windup-ticks: 10
+    cooldown-ticks: 160
+    damage: 2.0
+  multiplier:                 # 죽으면 분열하고 자식도 다시 분열
+    weight: 6
+    min-day: 4
+    split-min: 2
+    split-max: 3
+    max-generation: 4         # 0이면 무제한 (주변/전체 상한만 적용)
+    scale-per-generation: 0.8
+    health-per-generation: 0.7
+    nearby-cap: 60
+    nearby-radius: 32.0
+  screamer:                   # 비명으로 주변 좀비를 부르고, 확률로 호드를 부름
+    weight: 5
+    min-day: 3
+    detect-distance: 16.0
+    radius: 24.0
+    cooldown-ticks: 200
+  healer:                     # 주변 좀비 회복
+    weight: 5
+    min-day: 4
+    radius: 8.0
+    amount: 4.0
+    cooldown-ticks: 60
+  spitter:                    # 산성 덩어리를 뱉어 웅덩이를 만듦
+    weight: 5
+    min-day: 5
+    min-distance: 5.0
+    max-distance: 16.0
+    cooldown-ticks: 100
+    puddle-seconds: 5
+    puddle-radius: 2.5
+    hit-damage: 3.0
+  pillar:                     # 여러 마리가 목마처럼 겹친 탑
+    weight: 4
+    min-day: 5
+    height-min: 3
+    height-max: 4
+  vampire:                    # 때린 만큼 회복
+    weight: 5
+    min-day: 3
+    heal-ratio: 1.0
+  thief:                      # 핫바 아이템을 훔쳐 도망 (잡으면 반드시 돌려받음)
+    weight: 4
+    min-day: 2
+    flee-seconds: 20
+  necromancer:                # 땅에서 좀비를 일으킴
+    weight: 3
+    min-day: 6
+    range: 20.0
+    cooldown-ticks: 240
+    raise-min: 2
+    raise-max: 3
+    max-alive: 6
+  jockey:                     # 머리 위에 올라타 시야를 가림
+    weight: 5
+    min-day: 4
+    leap-distance: 3.0
+    cooldown-ticks: 100
+    ride-ticks: 120
+    damage: 1.0
+    darkness: false           # true면 실명 대신 어둠 효과
+
+# 보스. 가중치 랜덤이 아니라 아래 규칙으로만 스폰한다.
+tank:
+  enabled: true
+  health: 400.0
+  damage: 12.0
+  scale: 2.2
+  speed-multiplier: 1.1
+  limit: 1                    # 월드당 동시에 있을 수 있는 탱크 수 (피날레 중에는 ending.finale.tank-limit)
+  blood-moon: true            # 블러드문마다 1마리
+  horde-final-chance: 0.15    # 호드 마지막 웨이브에 등장할 확률
+  horde-min-day: 5
+  every-days: 10              # 이 날짜의 배수 날 밤마다 등장 (0이면 끔)
+  fire-damage-multiplier: 2.0
+  rock-cooldown-ticks: 120
+  rock-damage: 8.0
+  slam-cooldown-ticks: 160
+  slam-damage: 6.0
+  loot: [GOLDEN_APPLE:3]
+  exp: 100
+
+difficulty:
+  health-per-day: 0.05        # 하루마다 체력 +5%
+  damage-per-day: 0.03        # 하루마다 공격력 +3%
+  special-weight-per-day: 2   # 하루마다 기본 좀비 가중치 -2 (특수 좀비 비율 증가)
+  cap-per-day: 1              # 하루마다 플레이어 주변 추가 스폰 상한 +1
+  max-day: 30                 # 이 날 이후로는 더 강해지지 않음
+  day-title: true             # 새 날이 시작되면 N일차 타이틀
+
+blood-moon:
+  enabled: true
+  every-days: 7
+  spawn-interval-multiplier: 0.4
+  cap-multiplier: 2.0
+  special-weight-bonus: 20    # 블러드문 동안 기본 좀비 가중치를 이만큼 더 줄인다
+  health-multiplier: 1.3
+  speed-multiplier: 1.15
+
+player-zombie:
+  enabled: true
+  health-multiplier: 1.5
+  damage-multiplier: 1.2
+
+horde:
+  enabled: true
+  regular-every-days: 3       # 3, 6, 9일차… 그날 랜덤 시간 (0이면 정기 호드 없음)
+  screamer-chance: 0.25
+  screamer-cooldown-seconds: 300
+  warning-seconds: 10
+  waves: [2, 3]
+  wave-gap-seconds: 20
+  base-size: 8                # 웨이브당 플레이어 1명에게 오는 수
+  size-per-day: 1
+  max-wave-total: 80          # 웨이브 전체 상한 (렉 방지)
+  distance: [30, 45]
+  timeout-seconds: 180
+  sprinter-bonus-weight: 20
+  reward: []                  # 호드를 막으면 생존자에게 지급. 예: [EMERALD:3]
+
+ending:
+  radio-block: JUKEBOX
+  radio-recipe:               # 작업대 배치 그대로. shape의 한 글자가 keys의 아이템이고, 공백은 빈칸
+    shape: ["DRD", "RHR", "TBT"]
+    keys: {D: DIAMOND_BLOCK, R: REDSTONE_BLOCK, H: HEART_OF_THE_SEA, T: REDSTONE_TORCH, B: NOTE_BLOCK}
+  antenna-block: END_ROD
+  antenna-recipe:             # 라디오 바로 위나 옆에 붙여 설치해야 구조를 요청할 수 있다
+    shape: [" C ", "QRQ", " C "]
+    keys: {C: IRON_CHAIN, Q: QUARTZ, R: REDSTONE}
+  assembly:                   # 조합하면 바로 나오지 않고, 작업대 옆에서 좀비 웨이브를 버티며 조립한다 (0이면 바로 완성)
+    radio-seconds: 90
+    antenna-seconds: 45
+    radius: 8.0               # 작업대 이 거리 안에 생존자가 없으면 조립이 멈춘다
+    wave-size-multiplier: 1.0
+    wave-gap-seconds: [20, 25]
+  min-day: 0                  # 구조 요청이 가능한 최소 날짜 (0이면 제한 없음)
+  confirm-seconds: 5          # 이 시간 안에 한 번 더 우클릭하면 구조 요청
+  finale:
+    seconds: 300
+    radius: 32.0              # 라디오 이 거리 안에 생존자가 없으면 타이머가 멈춘다
+    height: 8.0               # 라디오와의 높이 차이가 이보다 크면 지키는 것으로 치지 않는다(공중 발판 방지)
+    horde-size-multiplier: 1.5
+    wave-gap-seconds: [15, 20]
+    tank-at-seconds: [60, 210]
+    tank-limit: 2
+  escape:
+    distance: 100
+    seconds: 180
+    radius: 5.0
+    horde-size-multiplier: 1.0
+    wave-gap-seconds: [20, 25]
+    point-zombies: 4          # 웨이브마다 탈출 지점 주변에 추가로 스폰
+  auto-stop: true             # 엔딩 후 아포칼립스를 자동으로 끈다
+  auto-stop-delay-seconds: 10
+  message: "구조 헬기가 도착했습니다. 생존자들은 무사히 탈출했습니다."

@@ -1,0 +1,465 @@
+package io.github.beddeak.zombie.command;
+
+import io.github.beddeak.zombie.Apocalypse;
+import io.github.beddeak.zombie.Msg;
+import io.github.beddeak.zombie.data.WorldData;
+import io.github.beddeak.zombie.event.HordeManager;
+import io.github.beddeak.zombie.logic.DayMath;
+import io.github.beddeak.zombie.zombie.TestEgg;
+import io.github.beddeak.zombie.zombie.ZombieType;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.command.BlockCommandSender;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+
+public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
+    public static final String PERMISSION = "zombieapoc.admin";
+    static final List<String> SUBCOMMANDS = List.of("start", "stop", "status", "reload", "spawn", "egg", "day", "bloodmoon",
+            "wave", "radio", "finale", "escape");
+    private static final int MAX_SPAWN = 50;
+    private static final int MAX_EGGS = 64;
+
+    /** Re-reads config.yml and returns its warnings; throws when the file cannot be parsed. */
+    @FunctionalInterface public interface Reloader {
+        List<String> reload() throws Exception;
+    }
+
+    private final Apocalypse core;
+    private final Reloader reloader;
+    private final Logger logger;
+
+    public ApocalypseCommand(Apocalypse core, Reloader reloader, Logger logger) {
+        this.core = core;
+        this.reloader = reloader;
+        this.logger = logger;
+    }
+
+    @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!sender.hasPermission(PERMISSION)) {
+            sender.sendMessage(message("권한이 없습니다."));
+            return true;
+        }
+        String subcommand = args.length == 0 ? "" : args[0].toLowerCase(Locale.ROOT);
+        switch (subcommand) {
+            case "start" -> start(sender, args);
+            case "stop" -> stop(sender, args);
+            case "status" -> status(sender);
+            case "reload" -> {
+                if (args.length == 1) { reload(sender); } else { usage(sender, label); }
+            }
+            case "spawn" -> spawn(sender, args, label);
+            case "egg" -> egg(sender, args, label);
+            case "day" -> day(sender, args, label);
+            case "bloodmoon" -> bloodMoon(sender, args, label);
+            case "wave", "horde" -> horde(sender, args, label);
+            case "radio" -> radio(sender, args, label);
+            case "finale" -> finale(sender, args, label);
+            case "escape" -> escape(sender, args, label);
+            default -> usage(sender, label);
+        }
+        return true;
+    }
+
+    private void usage(CommandSender sender, String label) {
+        sender.sendMessage(message("사용법: /" + label + " <" + String.join("|", SUBCOMMANDS) + ">"));
+    }
+
+    /** {@code start [world] [seconds|now]}: the arguments may come in any order. */
+    private void start(CommandSender sender, String[] args) {
+        Integer grace = null;
+        String worldName = null;
+        for (int index = 1; index < args.length; index++) {
+            String argument = args[index];
+            if (argument.equalsIgnoreCase("now")) {
+                grace = 0;
+            } else if (number(argument) != null) {
+                grace = number(argument);
+            } else {
+                worldName = argument;
+            }
+        }
+        if (grace != null && (grace < 0 || grace > 86_400)) {
+            sender.sendMessage(message("준비 시간은 0~86400초 사이여야 합니다."));
+            return;
+        }
+        World world = world(sender, worldName == null ? new String[0] : new String[]{"start", worldName}, 1, false);
+        if (world == null) { return; }
+        int seconds = grace != null ? grace : core.defaultGraceSeconds();
+        if (!core.start(world, seconds)) {
+            int left = core.preparingSeconds(world);
+            sender.sendMessage(message(left > 0 ? world.getName() + "에서는 이미 시작을 준비하고 있습니다. (남은 시간 " + Msg.clock(left) + ")"
+                    : world.getName() + "에서는 이미 진행 중입니다."));
+            return;
+        }
+        sender.sendMessage(message(seconds > 0 ? world.getName() + "에서 " + Msg.clock(seconds) + " 뒤 좀비 아포칼립스가 시작됩니다."
+                : world.getName() + "에서 좀비 아포칼립스를 시작했습니다."));
+    }
+
+    private void stop(CommandSender sender, String[] args) {
+        World world = world(sender, args, 1, false);
+        if (world == null) { return; }
+        sender.sendMessage(core.stop(world) ? message(world.getName() + "에서 좀비 아포칼립스를 끝냈습니다.")
+                : message(world.getName() + "에서는 진행 중이 아닙니다."));
+    }
+
+    private void status(CommandSender sender) {
+        List<World> worlds = core.registeredWorlds();
+        if (worlds.isEmpty()) {
+            sender.sendMessage(message("진행 중인 월드가 없습니다."));
+            return;
+        }
+        for (World world : worlds) {
+            if (!core.active(world)) {
+                sender.sendMessage(message(world.getName() + ": 시작 준비 중 (남은 시간 " + Msg.clock(core.preparingSeconds(world)) + ")"));
+                continue;
+            }
+            long timeOfDay = DayMath.timeOfDay(world.getFullTime());
+            sender.sendMessage(message(world.getName() + ": " + core.day(world) + "일차, 시각 " + timeOfDay
+                    + (core.bloodMoon(world) ? ", 블러드문" : "")
+                    + (core.hordes().running(world) ? ", 좀비 웨이브 진행 중(남은 " + core.hordes().remaining(world) + ")" : "")));
+            Map<ZombieType, Integer> counts = core.registry().counts(world);
+            int total = counts.values().stream().mapToInt(Integer::intValue).sum();
+            List<String> parts = new ArrayList<>();
+            counts.forEach((type, count) -> parts.add(type.displayName() + " " + count));
+            sender.sendMessage(Component.text("  커스텀 좀비 " + total + "마리" + (parts.isEmpty() ? "" : ": " + String.join(", ", parts))));
+            for (String line : core.ending().status(world)) { sender.sendMessage(Component.text("  " + line)); }
+            for (String line : core.assembly().status(world)) { sender.sendMessage(Component.text("  " + line)); }
+        }
+    }
+
+    private void reload(CommandSender sender) {
+        try {
+            List<String> warnings = reloader.reload();
+            sender.sendMessage(warnings.isEmpty() ? message("설정을 다시 불러왔습니다.")
+                    : message("설정을 다시 불러왔습니다. 경고 " + warnings.size() + "개는 서버 로그를 확인하세요."));
+        } catch (Exception exception) {
+            logger.log(Level.WARNING, "ZombieApocalypse config reload failed; keeping previous settings", exception);
+            sender.sendMessage(message("설정을 불러오지 못해 이전 설정을 유지합니다. 서버 로그를 확인하세요."));
+        }
+    }
+
+    /** {@code spawn <type> [count]} for players; the console adds {@code <world> <x> <y> <z>}. */
+    private void spawn(CommandSender sender, String[] args, String label) {
+        Optional<ZombieType> type = args.length >= 2 ? ZombieType.parse(args[1]) : Optional.empty();
+        if (type.isEmpty() || type.get() == ZombieType.PLAYER) {
+            sender.sendMessage(message("사용법: /" + label + " spawn <타입> [수] — 타입: " + String.join(", ", typeNames())));
+            return;
+        }
+        int count = 1;
+        if (args.length >= 3) {
+            Integer parsed = number(args[2]);
+            if (parsed == null || parsed < 1 || parsed > MAX_SPAWN) {
+                sender.sendMessage(message("수는 1~" + MAX_SPAWN + " 사이여야 합니다."));
+                return;
+            }
+            count = parsed;
+        }
+        Location location = spawnLocation(sender, args);
+        if (location == null) {
+            sender.sendMessage(message("콘솔에서는 위치를 지정해야 합니다: /" + label + " spawn <타입> <수> <월드> <x> <y> <z>"));
+            return;
+        }
+        if (!core.active(location.getWorld())) {
+            sender.sendMessage(message(location.getWorld().getName() + "에서는 아포칼립스가 꺼져 있습니다. 먼저 start 하세요."));
+            return;
+        }
+        for (int index = 0; index < count; index++) {
+            if (type.get() == ZombieType.TANK) {
+                core.tanks().spawnAt(location);
+            } else {
+                core.factory().spawn(location, type.get(), core.context(location.getWorld()));
+            }
+        }
+        sender.sendMessage(message(type.get().displayName() + " 좀비 " + count + "마리를 소환했습니다."));
+    }
+
+    private Location spawnLocation(CommandSender sender, String[] args) {
+        if (args.length >= 7) {
+            World world = Bukkit.getWorld(args[3]);
+            Integer x = number(args[4]);
+            Integer y = number(args[5]);
+            Integer z = number(args[6]);
+            return world == null || x == null || y == null || z == null ? null : new Location(world, x + 0.5, y, z + 0.5);
+        }
+        if (!(sender instanceof Player player)) { return null; }
+        Block block = player.getTargetBlockExact(32);
+        if (block != null) { return block.getLocation().add(0.5, 1, 0.5); }
+        return player.getLocation().add(player.getLocation().getDirection().setY(0).normalize().multiply(3));
+    }
+
+    /** {@code egg <type|all> [count] [player]}: test spawn eggs that spawn the custom zombie. */
+    private void egg(CommandSender sender, String[] args, String label) {
+        String which = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "";
+        boolean all = which.equals("all");
+        Optional<ZombieType> type = all ? Optional.empty() : ZombieType.parse(which);
+        if (!all && (type.isEmpty() || type.get() == ZombieType.PLAYER)) {
+            sender.sendMessage(message("사용법: /" + label + " egg <타입|all> [수] [플레이어] — 타입: " + String.join(", ", typeNames())));
+            return;
+        }
+        int count = 1;
+        if (args.length >= 3) {
+            Integer parsed = number(args[2]);
+            if (parsed == null || parsed < 1 || parsed > MAX_EGGS) {
+                sender.sendMessage(message("수는 1~" + MAX_EGGS + " 사이여야 합니다."));
+                return;
+            }
+            count = parsed;
+        }
+        Player target = args.length >= 4 ? Bukkit.getPlayerExact(args[3]) : sender instanceof Player player ? player : null;
+        if (target == null) {
+            sender.sendMessage(message("받을 플레이어를 찾을 수 없습니다."));
+            return;
+        }
+        List<ZombieType> types = all ? eggTypes() : List.of(type.get());
+        for (ZombieType eggType : types) {
+            for (ItemStack left : target.getInventory().addItem(TestEgg.create(eggType, count)).values()) {
+                target.getWorld().dropItemNaturally(target.getLocation(), left);
+            }
+        }
+        String what = all ? "모든 좀비 스폰알(" + types.size() + "종)" : type.get().displayName() + " 좀비 스폰알";
+        sender.sendMessage(message(target.getName() + "에게 " + what + "을 " + count + "개씩 줬습니다."));
+    }
+
+    private static List<ZombieType> eggTypes() {
+        List<ZombieType> types = new ArrayList<>();
+        for (ZombieType type : ZombieType.values()) {
+            if (type != ZombieType.PLAYER) { types.add(type); }
+        }
+        return types;
+    }
+
+    private void day(CommandSender sender, String[] args, String label) {
+        boolean set = args.length >= 2 && args[1].equalsIgnoreCase("set");
+        World world = world(sender, args, set ? 3 : 1, true);
+        if (world == null) { return; }
+        if (!set) {
+            sender.sendMessage(message(world.getName() + ": " + core.day(world) + "일차 (시각 " + DayMath.timeOfDay(world.getFullTime()) + ")"));
+            return;
+        }
+        Integer day = args.length >= 3 ? number(args[2]) : null;
+        if (day == null || day < 1 || day > 100_000) {
+            sender.sendMessage(message("사용법: /" + label + " day set <1 이상의 날짜>"));
+            return;
+        }
+        core.setDay(world, day);
+        sender.sendMessage(message(world.getName() + "을(를) " + day + "일차로 바꿨습니다."));
+    }
+
+    private void bloodMoon(CommandSender sender, String[] args, String label) {
+        String action = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "";
+        if (!action.equals("start") && !action.equals("stop")) {
+            sender.sendMessage(message("사용법: /" + label + " bloodmoon <start|stop>"));
+            return;
+        }
+        World world = world(sender, args, 2, true);
+        if (world == null) { return; }
+        WorldData data = core.data(world);
+        if (action.equals("start")) {
+            core.bloodMoonManager().forceStart(world, data);
+            sender.sendMessage(message("블러드문을 시작했습니다. 다음 아침까지 이어집니다."));
+        } else {
+            core.bloodMoonManager().forceStop(world, data);
+            sender.sendMessage(message("블러드문을 끝냈습니다. 이번 밤에는 다시 뜨지 않습니다."));
+        }
+    }
+
+    private void horde(CommandSender sender, String[] args, String label) {
+        String action = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "";
+        if (!action.equals("start") && !action.equals("stop")) {
+            sender.sendMessage(message("사용법: /" + label + " wave <start|stop>"));
+            return;
+        }
+        World world = world(sender, args, 2, true);
+        if (world == null) { return; }
+        if (action.equals("start")) {
+            if (core.hordes().start(world, HordeManager.Kind.MANUAL)) {
+                sender.sendMessage(message("좀비 웨이브를 시작했습니다."));
+            } else {
+                sender.sendMessage(message(core.hordes().running(world) ? "이미 좀비 웨이브가 진행 중입니다." : "싸울 수 있는 플레이어가 없습니다."));
+            }
+        } else if (core.hordes().running(world)) {
+            core.hordes().stop(world);
+            sender.sendMessage(message("좀비 웨이브를 끝냈습니다. 이미 나온 좀비는 남아 있습니다."));
+        } else {
+            sender.sendMessage(message("진행 중인 좀비 웨이브가 없습니다."));
+        }
+    }
+
+    private void radio(CommandSender sender, String[] args, String label) {
+        String action = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "";
+        switch (action) {
+            case "give" -> {
+                Player target = args.length >= 3 ? Bukkit.getPlayerExact(args[2]) : sender instanceof Player player ? player : null;
+                if (target == null) {
+                    sender.sendMessage(message("받을 플레이어를 찾을 수 없습니다."));
+                    return;
+                }
+                for (ItemStack left : target.getInventory().addItem(core.ending().radioItem(), core.ending().antennaItem()).values()) {
+                    target.getWorld().dropItemNaturally(target.getLocation(), left);
+                }
+                sender.sendMessage(message(target.getName() + "에게 라디오와 안테나를 줬습니다(조립 없이 바로)."));
+            }
+            case "status" -> {
+                World world = world(sender, args, 2, false);
+                if (world == null) { return; }
+                for (String line : core.ending().status(world)) { sender.sendMessage(message(line)); }
+                for (String line : core.assembly().status(world)) { sender.sendMessage(message(line)); }
+            }
+            case "reset" -> {
+                World world = world(sender, args, 2, true);
+                if (world == null) { return; }
+                core.ending().reset(world, core.data(world));
+                sender.sendMessage(message("엔딩 진행을 초기화했습니다. 라디오는 그대로 남아 있습니다."));
+            }
+            default -> sender.sendMessage(message("사용법: /" + label + " radio <give [플레이어]|status|reset>"));
+        }
+    }
+
+    private void finale(CommandSender sender, String[] args, String label) {
+        String action = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "";
+        if (!action.equals("start") && !action.equals("skip")) {
+            sender.sendMessage(message("사용법: /" + label + " finale <start|skip>"));
+            return;
+        }
+        World world = world(sender, args, 2, true);
+        if (world == null) { return; }
+        String problem = action.equals("start") ? core.ending().startFinale(world, core.data(world), sender.getName())
+                : core.ending().skipFinale(world, core.data(world));
+        sender.sendMessage(message(problem == null ? (action.equals("start") ? "구조 피날레를 시작했습니다." : "피날레를 건너뛰고 탈출 단계로 넘어갔습니다.") : problem));
+    }
+
+    private void escape(CommandSender sender, String[] args, String label) {
+        if (args.length < 2 || !args[1].equalsIgnoreCase("skip")) {
+            sender.sendMessage(message("사용법: /" + label + " escape skip"));
+            return;
+        }
+        World world = world(sender, args, 2, true);
+        if (world == null) { return; }
+        String problem = core.ending().skipEscape(world, core.data(world));
+        sender.sendMessage(message(problem == null ? "탈출 단계를 끝내고 엔딩으로 넘어갔습니다." : problem));
+    }
+
+    /**
+     * World named at {@code index}, otherwise the sender's world, otherwise (console) the only active world.
+     * Sends a message and returns null when it cannot be resolved or must be active but is not.
+     */
+    private World world(CommandSender sender, String[] args, int index, boolean mustBeActive) {
+        World world;
+        if (args.length > index) {
+            world = Bukkit.getWorld(args[index]);
+            if (world == null) {
+                sender.sendMessage(message("월드를 찾을 수 없습니다: " + args[index]));
+                return null;
+            }
+        } else if (sender instanceof Entity entity) {
+            world = entity.getWorld();
+        } else if (sender instanceof BlockCommandSender block) {
+            world = block.getBlock().getWorld();
+        } else {
+            List<World> active = core.registeredWorlds();
+            if (active.size() == 1) {
+                world = active.get(0);
+            } else if (!mustBeActive && active.isEmpty() && !Bukkit.getWorlds().isEmpty()) {
+                world = Bukkit.getWorlds().get(0);
+            } else {
+                sender.sendMessage(message("월드 이름을 지정해 주세요."));
+                return null;
+            }
+        }
+        if (mustBeActive && !core.active(world)) {
+            int left = core.preparingSeconds(world);
+            sender.sendMessage(message(left > 0 ? world.getName() + "에서는 아직 시작을 준비하고 있습니다. (남은 시간 " + Msg.clock(left) + ")"
+                    : world.getName() + "에서는 아포칼립스가 꺼져 있습니다."));
+            return null;
+        }
+        return world;
+    }
+
+    @Override public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
+        if (!sender.hasPermission(PERMISSION) || args.length == 0) { return List.of(); }
+        String sub = args[0].toLowerCase(Locale.ROOT);
+        List<String> options;
+        if (args.length == 1) {
+            options = SUBCOMMANDS;
+        } else if (args.length == 2) {
+            options = switch (sub) {
+                case "start" -> concat(List.of("now", "60", "300"), worldNames());
+                case "stop" -> worldNames();
+                case "spawn" -> typeNames();
+                case "egg" -> eggNames();
+                case "day" -> List.of("set");
+                case "bloodmoon", "wave", "horde" -> List.of("start", "stop");
+                case "radio" -> List.of("give", "status", "reset");
+                case "finale" -> List.of("start", "skip");
+                case "escape" -> List.of("skip");
+                default -> List.of();
+            };
+        } else if (args.length == 3) {
+            options = switch (sub) {
+                case "radio" -> args[1].equalsIgnoreCase("give")
+                        ? Bukkit.getOnlinePlayers().stream().map(Player::getName).toList() : worldNames();
+                case "spawn", "egg" -> List.of("1", "5", "10");
+                case "bloodmoon", "wave", "horde", "finale", "escape" -> worldNames();
+                default -> List.of();
+            };
+        } else if (args.length == 4 && sub.equals("egg")) {
+            options = Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
+        } else {
+            options = List.of();
+        }
+        String prefix = args[args.length - 1].toLowerCase(Locale.ROOT);
+        return options.stream().filter(option -> option.toLowerCase(Locale.ROOT).startsWith(prefix)).toList();
+    }
+
+    private static List<String> typeNames() {
+        List<String> names = new ArrayList<>();
+        for (ZombieType type : ZombieType.values()) {
+            if (type != ZombieType.PLAYER) { names.add(type.configKey()); }
+        }
+        return names;
+    }
+
+    private static List<String> concat(List<String> first, List<String> second) {
+        List<String> all = new ArrayList<>(first);
+        all.addAll(second);
+        return all;
+    }
+
+    private static List<String> eggNames() {
+        List<String> names = new ArrayList<>(List.of("all"));
+        names.addAll(typeNames());
+        return names;
+    }
+
+    private static List<String> worldNames() {
+        return Bukkit.getWorlds().stream().map(World::getName).toList();
+    }
+
+    private static Integer number(String text) {
+        try {
+            return Integer.parseInt(text.trim());
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
+    static Component message(String text) {
+        return Msg.info(text);
+    }
+}

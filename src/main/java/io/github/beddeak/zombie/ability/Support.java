@@ -1,0 +1,84 @@
+package io.github.beddeak.zombie.ability;
+
+import io.github.beddeak.zombie.Apocalypse;
+import org.bukkit.GameMode;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.Zombie;
+import org.bukkit.util.Vector;
+
+/** Helpers shared by abilities. */
+final class Support {
+    private Support() {}
+
+    static boolean fighting(Player player) {
+        GameMode mode = player.getGameMode();
+        return player.isOnline() && !player.isDead() && (mode == GameMode.SURVIVAL || mode == GameMode.ADVENTURE);
+    }
+
+    /** The zombie's target if it is a player who can be attacked in the same world. */
+    static Player target(Zombie zombie) {
+        LivingEntity target = zombie.getTarget();
+        if (target instanceof Player player && fighting(player) && player.getWorld().equals(zombie.getWorld())) {
+            return player;
+        }
+        return null;
+    }
+
+    static Player nearest(Location center, double radius) {
+        Player best = null;
+        double bestDistance = radius * radius;
+        for (Player player : center.getWorld().getPlayers()) {
+            if (!fighting(player)) { continue; }
+            double distance = player.getLocation().distanceSquared(center);
+            if (distance <= bestDistance) {
+                best = player;
+                bestDistance = distance;
+            }
+        }
+        return best;
+    }
+
+    /** Target, or the nearest fighting player within {@code radius}. */
+    static Player targetOrNearest(Zombie zombie, double radius) {
+        Player target = target(zombie);
+        return target != null ? target : nearest(zombie.getLocation(), radius);
+    }
+
+    static double horizontalDistance(Location a, Location b) {
+        double dx = a.getX() - b.getX();
+        double dz = a.getZ() - b.getZ();
+        return Math.sqrt(dx * dx + dz * dz);
+    }
+
+    /** Unit vector on the ground plane from {@code from} towards {@code to}; falls back to {@code from}'s facing. */
+    static Vector flatDirection(Location from, Location to) {
+        Vector direction = to.toVector().subtract(from.toVector()).setY(0);
+        if (direction.lengthSquared() < 1.0E-4) { direction = from.getDirection().setY(0); }
+        if (direction.lengthSquared() < 1.0E-4) { direction = new Vector(1, 0, 0); }
+        return direction.normalize();
+    }
+
+    /** Sets a velocity one tick later, after vanilla knockback has been applied. */
+    static void launchLater(Apocalypse core, Player player, Vector velocity) {
+        core.runLater(1, () -> {
+            if (player.isOnline() && !player.isDead()) { player.setVelocity(velocity); }
+        });
+    }
+
+    /** Velocity for a projectile from {@code from} to {@code to}, compensating snowball gravity. */
+    static Vector lob(Location from, Location to, double speed) {
+        Vector difference = to.toVector().subtract(from.toVector());
+        double flightTicks = Math.max(5, difference.length() / speed);
+        return difference.multiply(1 / flightTicks).add(new Vector(0, 0.5 * 0.03 * flightTicks, 0));
+    }
+
+    /** Boomer/bomber explosion, only while the world still runs the apocalypse. It does not hurt other zombies. */
+    static void explode(Apocalypse core, Location location, double power, boolean breakBlocks) {
+        World world = location.getWorld();
+        if (power <= 0 || !core.active(world)) { return; }
+        core.zombieBlast(() -> world.createExplosion(location, (float) power, false, breakBlocks, null));
+    }
+}

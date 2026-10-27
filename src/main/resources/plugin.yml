@@ -1,0 +1,15 @@
+name: ZombieApocalypse
+version: '${version}'
+main: io.github.beddeak.zombie.ZombieApocalypsePlugin
+api-version: '26.2'
+author: beddeak
+description: '좀비 아포칼립스 - mod by beddeak(침댁)'
+commands:
+  apocalypse:
+    description: 좀비 아포칼립스 관리
+    aliases: [apoc]
+    usage: /<command> <start|stop|status|reload|spawn|egg|day|bloodmoon|wave|radio|finale|escape>
+permissions:
+  zombieapoc.admin:
+    description: 좀비 아포칼립스 시작, 종료, 설정 재적용
+    default: op
