@@ -4,3 +4,5 @@ build/
 *.iml
 .runtime/
 server/
+bin/
+.upload-git/
