@@ -55,6 +55,7 @@ class SettingsTest {
         assertTrue(settings.tank().loot().stream().noneMatch(loot -> loot.material() == Material.HEART_OF_THE_SEA || loot.material() == Material.DIAMOND));
         assertEquals(3, settings.horde().regularEveryDays());
         assertEquals(6, settings.start().graceSeconds());
+        assertEquals(180, settings.start().quietSurfaceSeconds());
         assertEquals(Material.END_ROD, settings.ending().antennaBlock());
         assertEquals(List.of(" C ", "QRQ", " C "), settings.ending().antennaRecipe().rows());
         assertEquals(java.util.Map.of('C', Material.IRON_CHAIN, 'Q', Material.QUARTZ, 'R', Material.REDSTONE),

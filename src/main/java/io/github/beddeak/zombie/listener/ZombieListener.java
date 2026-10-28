@@ -44,7 +44,13 @@ public final class ZombieListener implements Listener {
         LivingEntity entity = event.getEntity();
         World world = entity.getWorld();
         if (!core.active(world)) { return; }
-        switch (ReplaceRules.decide(entity.getType(), event.getSpawnReason(), core.settings().replace())) {
+        ReplaceRules.Action decision = ReplaceRules.decide(entity.getType(), event.getSpawnReason(), core.settings().replace());
+        if (decision != ReplaceRules.Action.IGNORE && !ReplaceRules.fromSpawner(event.getSpawnReason())
+                && core.quietSurface(entity.getLocation())) {
+            event.setCancelled(true);
+            return;
+        }
+        switch (decision) {
             case TAG -> {
                 Zombie zombie = (Zombie) entity;
                 if (Tags.type(zombie) != null) { return; }

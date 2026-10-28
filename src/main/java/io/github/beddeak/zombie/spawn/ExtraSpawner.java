@@ -54,7 +54,9 @@ public final class ExtraSpawner {
                 Optional<SpawnLocator.Spot> spot = SpawnLocator.find(sampler, center.getX(), center.getY(), center.getZ(),
                         spawning.minDistance(), spawning.maxDistance(), 0, Math.PI, cave, ThreadLocalRandom.current(), 6);
                 if (spot.isEmpty()) { continue; }
-                core.factory().spawnRandom(new Location(world, spot.get().x() + 0.5, spot.get().y(), spot.get().z() + 0.5), context, 0);
+                Location location = new Location(world, spot.get().x() + 0.5, spot.get().y(), spot.get().z() + 0.5);
+                if (core.quietSurface(location)) { continue; }
+                core.factory().spawnRandom(location, context, 0);
                 global++;
             }
         }

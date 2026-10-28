@@ -27,8 +27,11 @@ public record Settings(
         Ending ending,
         Start start) {
 
-    /** Preparation time between {@code /apocalypse start} and the first zombies. */
-    public record Start(int graceSeconds) {}
+    /**
+     * Preparation time between {@code /apocalypse start} and the first zombies, then how long nothing spawns under
+     * the open sky so players can settle in.
+     */
+    public record Start(int graceSeconds, int quietSurfaceSeconds) {}
 
     public record Replace(Set<SpawnReason> reasons, Set<EntityType> exclude, int spawnerNearbyCap) {}
 
@@ -175,7 +178,8 @@ public record Settings(
                 e.integer("confirm-seconds", 5, 1, 60), finale, escape, e.bool("auto-stop", true), e.integer("auto-stop-delay-seconds", 10, 0, 600),
                 e.text("message", "구조 헬기가 도착했습니다. 생존자들은 무사히 탈출했습니다."));
 
-        Start start = new Start(reader.child("start").integer("grace-seconds", 6, 0, 86_400));
+        ConfigReader st = reader.child("start");
+        Start start = new Start(st.integer("grace-seconds", 6, 0, 86_400), st.integer("quiet-surface-seconds", 180, 0, 86_400));
 
         reader.finish();
         return new Loaded(new Settings(replace, spawning, zombie, types, tank, difficulty, bloodMoon, playerZombie, horde, ending,

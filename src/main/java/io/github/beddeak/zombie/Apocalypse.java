@@ -30,6 +30,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.GameMode;
+import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.World;
@@ -163,6 +164,7 @@ public class Apocalypse {
         data.preparingTotal = 0;
         data.startDay = DayMath.dayIndex(world.getFullTime());
         data.lastDayShown = 0;
+        data.quietSurfaceTicks = settings.start().quietSurfaceSeconds() * 20;
         applySpawnSettings(world);
         int cleared = clearMonsters(world);
         if (cleared > 0) { logger.info("[" + world.getName() + "] Removed " + cleared + " vanilla monsters at the start"); }
@@ -275,6 +277,24 @@ public class Apocalypse {
     public int preparingSeconds(World world) {
         WorldData data = world == null ? null : store.worlds().get(world.getName());
         return data == null ? 0 : (data.preparingTicks + 19) / 20;
+    }
+
+    /**
+     * Right after the start nothing spawns under the open sky (caves and spawners are unaffected), so the first
+     * minutes are not an instant swarm. Players are not told about it.
+     */
+    public boolean quietSurface(Location location) {
+        World world = location.getWorld();
+        WorldData data = world == null ? null : data(world);
+        if (data == null || data.quietSurfaceTicks <= 0) { return false; }
+        return location.getBlockY() > world.getHighestBlockYAt(location.getBlockX(), location.getBlockZ(),
+                HeightMap.MOTION_BLOCKING_NO_LEAVES);
+    }
+
+    /** Seconds left of the quiet surface time, for the status command. */
+    public int quietSurfaceSeconds(World world) {
+        WorldData data = data(world);
+        return data == null ? 0 : (data.quietSurfaceTicks + 19) / 20;
     }
 
     public int defaultGraceSeconds() {
@@ -392,6 +412,10 @@ public class Apocalypse {
             }
             for (World world : activeWorlds()) {
                 WorldData data = data(world);
+                if (data.quietSurfaceTicks > 0) {
+                    data.quietSurfaceTicks = Math.max(0, data.quietSurfaceTicks - 20);
+                    if (data.quietSurfaceTicks % 200 == 0) { save(); }
+                }
                 safely("clock", () -> clock.second(world, data));
                 safely("blood moon", () -> bloodMoon.second(world, data));
                 safely("horde", () -> hordes.second(world));

@@ -190,6 +190,7 @@ public final class DataStore {
         data.bloodMoonTankDay = section.getInt("blood-moon-tank-day");
         data.preparingTicks = Math.max(0, section.getInt("preparing-ticks"));
         data.preparingTotal = Math.max(data.preparingTicks, section.getInt("preparing-total"));
+        data.quietSurfaceTicks = Math.max(0, section.getInt("quiet-surface-ticks"));
         ConfigurationSection assembly = section.getConfigurationSection("assembly");
         if (assembly != null && assembly.getString("item") != null) {
             data.assemblyItem = assembly.getString("item");
@@ -238,6 +239,7 @@ public final class DataStore {
         section.set("blood-moon-tank-day", data.bloodMoonTankDay);
         section.set("preparing-ticks", data.preparingTicks);
         section.set("preparing-total", data.preparingTotal);
+        section.set("quiet-surface-ticks", data.quietSurfaceTicks);
         if (data.assemblyItem != null && data.assemblyPos != null) {
             ConfigurationSection assembly = section.createSection("assembly");
             assembly.set("item", data.assemblyItem);

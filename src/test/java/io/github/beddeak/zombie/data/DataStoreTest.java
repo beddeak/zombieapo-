@@ -28,6 +28,7 @@ class DataStoreTest {
         data.bloodMoonTankDay = 7;
         data.preparingTicks = 2400;
         data.preparingTotal = 6000;
+        data.quietSurfaceTicks = 1800;
         UUID crafter = UUID.randomUUID();
         data.assemblyItem = "ANTENNA";
         data.assemblyPos = new BlockPos(3, 70, -9);
@@ -65,6 +66,7 @@ class DataStoreTest {
         assertEquals(7, read.bloodMoonTankDay);
         assertEquals(2400, read.preparingTicks);
         assertEquals(6000, read.preparingTotal);
+        assertEquals(1800, read.quietSurfaceTicks);
         assertEquals("ANTENNA", read.assemblyItem);
         assertEquals(new BlockPos(3, 70, -9), read.assemblyPos);
         assertEquals(400, read.assemblyRemaining);

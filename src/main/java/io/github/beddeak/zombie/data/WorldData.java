@@ -16,6 +16,8 @@ public final class WorldData {
     /** Ticks left of the preparation countdown after {@code /apocalypse start}; 0 once the apocalypse runs. */
     public int preparingTicks;
     public int preparingTotal;
+    /** Ticks left in which nothing spawns on the surface after the start. */
+    public int quietSurfaceTicks;
     /** Radio or antenna being assembled at a crafting table; {@code assemblyItem} is null when nothing is. */
     public String assemblyItem;
     public BlockPos assemblyPos;

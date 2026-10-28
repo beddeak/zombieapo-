@@ -132,7 +132,8 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
             long timeOfDay = DayMath.timeOfDay(world.getFullTime());
             sender.sendMessage(message(world.getName() + ": " + core.day(world) + "일차, 시각 " + timeOfDay
                     + (core.bloodMoon(world) ? ", 블러드문" : "")
-                    + (core.hordes().running(world) ? ", 좀비 웨이브 진행 중(남은 " + core.hordes().remaining(world) + ")" : "")));
+                    + (core.hordes().running(world) ? ", 좀비 웨이브 진행 중(남은 " + core.hordes().remaining(world) + ")" : "")
+                    + (core.quietSurfaceSeconds(world) > 0 ? ", 지상 스폰 대기 " + Msg.clock(core.quietSurfaceSeconds(world)) : "")));
             Map<ZombieType, Integer> counts = core.registry().counts(world);
             int total = counts.values().stream().mapToInt(Integer::intValue).sum();
             List<String> parts = new ArrayList<>();
