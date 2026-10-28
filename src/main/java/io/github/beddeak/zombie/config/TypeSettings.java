@@ -57,8 +57,8 @@ public record TypeSettings(
 
     static TypeSettings read(ConfigReader types, java.util.List<String> warnings) {
         Map<ZombieType, Spawn> spawns = new EnumMap<>(ZombieType.class);
-        spawn(types, ZombieType.DEFAULT, 70, 0, spawns);
-        ConfigReader c = spawn(types, ZombieType.SPRINTER, 30, 0, spawns);
+        spawn(types, ZombieType.DEFAULT, 40, 0, spawns);
+        ConfigReader c = spawn(types, ZombieType.SPRINTER, 8, 0, spawns);
         Sprinter sprinter = new Sprinter(c.number("speed-multiplier", 1.6, 0.1, 5));
         c = spawn(types, ZombieType.BOOMER, 8, 2, spawns);
         Boomer boomer = new Boomer(c.number("power", 3.0, 0, 10), c.bool("break-blocks", true),

@@ -16,7 +16,7 @@ class TypePickerTest {
 
     @Test void dayOneOnlyHasTypesWithoutAStartDay() {
         Map<ZombieType, Integer> weights = TypePicker.weights(types, 1, 0, 0, type -> true);
-        assertEquals(Map.of(ZombieType.DEFAULT, 70, ZombieType.SPRINTER, 30, ZombieType.TOXIC, 8), weights);
+        assertEquals(Map.of(ZombieType.DEFAULT, 40, ZombieType.SPRINTER, 8, ZombieType.TOXIC, 8), weights);
     }
 
     @Test void startDaysUnlockTypesAndBossTypesNeverAppear() {
@@ -28,9 +28,9 @@ class TypePickerTest {
     }
 
     @Test void reductionAndSprinterBonusChangeOnlyTheirTypes() {
-        Map<ZombieType, Integer> weights = TypePicker.weights(types, 1, 50, 20, type -> true);
-        assertEquals(20, weights.get(ZombieType.DEFAULT));
-        assertEquals(50, weights.get(ZombieType.SPRINTER));
+        Map<ZombieType, Integer> weights = TypePicker.weights(types, 1, 30, 20, type -> true);
+        assertEquals(10, weights.get(ZombieType.DEFAULT));
+        assertEquals(28, weights.get(ZombieType.SPRINTER));
         assertFalse(TypePicker.weights(types, 1, 500, 0, type -> true).containsKey(ZombieType.DEFAULT));
     }
 

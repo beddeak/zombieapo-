@@ -108,9 +108,9 @@ public record Settings(
         }
         Spawning spawning = new Spawning(s.integer("monster-spawn-limit", 150, 0, 10_000),
                 s.integer("ticks-per-monster-spawn", 1, 1, 10_000), extra.bool("enabled", true),
-                extra.integer("interval-ticks", 100, 1, 72_000), extra.integer("per-player-cap", 25, 0, 1000),
-                extra.integer("global-cap", 300, 0, 10_000), extra.number("count-radius", 48, 1, 256),
-                extra.integer("per-attempt", 3, 1, 100), minDistance, maxDistance);
+                extra.integer("interval-ticks", 100, 1, 72_000), extra.integer("per-player-cap", 40, 0, 1000),
+                extra.integer("global-cap", 500, 0, 10_000), extra.number("count-radius", 48, 1, 256),
+                extra.integer("per-attempt", 5, 1, 100), minDistance, maxDistance);
 
         ConfigReader z = reader.child("zombie");
         ZombieOptions zombie = new ZombieOptions(z.number("follow-range", 40, 1, 2048), z.bool("show-type-name", false));
@@ -150,7 +150,7 @@ public record Settings(
                 h.integer("warning-seconds", 10, 0, 300), waves[0], waves[1], h.integer("wave-gap-seconds", 20, 1, 3600),
                 h.integer("base-size", 8, 0, 500), h.integer("size-per-day", 1, 0, 500), h.integer("max-wave-total", 80, 1, 2000),
                 distance[0], distance[1], h.integer("timeout-seconds", 180, 10, 86_400),
-                h.integer("sprinter-bonus-weight", 20, 0, 100_000), loot(h, "reward", List.of()));
+                h.integer("sprinter-bonus-weight", 5, 0, 100_000), loot(h, "reward", List.of()));
 
         ConfigReader e = reader.child("ending");
         Material radioBlock = material(e, "radio-block", Material.JUKEBOX);

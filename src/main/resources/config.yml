@@ -25,10 +25,10 @@ spawning:
   extra:
     enabled: true
     interval-ticks: 100
-    per-player-cap: 25        # 한 지점 주변(count-radius) 커스텀 좀비가 이 수 이상이면 자연 스폰·대체·추가 스폰을 멈춘다. 날짜와 블러드문에 따라 늘어난다
-    global-cap: 300           # 서버 전체 커스텀 좀비 상한
+    per-player-cap: 40        # 한 지점 주변(count-radius) 커스텀 좀비가 이 수 이상이면 자연 스폰·대체·추가 스폰을 멈춘다. 날짜와 블러드문에 따라 늘어난다
+    global-cap: 500           # 서버 전체 커스텀 좀비 상한
     count-radius: 48
-    per-attempt: 3
+    per-attempt: 5            # interval-ticks마다 플레이어 1명 주변에 추가로 스폰하는 최대 수
     min-distance: 20
     max-distance: 40
 
@@ -39,10 +39,10 @@ zombie:
 # weight: 랜덤 가중치(0이면 안 나옴), min-day: 이 날짜부터 등장
 types:
   default:
-    weight: 70
+    weight: 40
     min-day: 0
-  sprinter:
-    weight: 30
+  sprinter:                   # 매우 빠름
+    weight: 8
     min-day: 0
     speed-multiplier: 1.6
   boomer:                     # 죽은 자리에서 폭발
@@ -208,7 +208,7 @@ horde:
   max-wave-total: 80          # 웨이브 전체 상한 (렉 방지)
   distance: [30, 45]
   timeout-seconds: 180
-  sprinter-bonus-weight: 20
+  sprinter-bonus-weight: 5    # 좀비 웨이브 때 스프린터 가중치에 더하는 값
   reward: []                  # 호드를 막으면 생존자에게 지급. 예: [EMERALD:3]
 
 ending:

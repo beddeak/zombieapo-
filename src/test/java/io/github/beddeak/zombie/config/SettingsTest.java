@@ -115,7 +115,7 @@ class SettingsTest {
             if (type.random()) { yaml.append("  ").append(type.configKey()).append(":\n    weight: 0\n"); }
         }
         Settings.Loaded loaded = load(yaml.toString());
-        assertEquals(70, loaded.settings().types().spawn(ZombieType.DEFAULT).weight());
+        assertEquals(40, loaded.settings().types().spawn(ZombieType.DEFAULT).weight());
         assertTrue(loaded.warnings().stream().anyMatch(warning -> warning.contains("가중치")));
     }
 

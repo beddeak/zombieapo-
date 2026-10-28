@@ -23,7 +23,7 @@ public final class AbilityRules {
         return Math.pow(perGeneration, Math.max(0, generation - 1));
     }
 
-    /** Thief: weapons and armor are never stolen. */
+    /** Thief: weapons and armor are only taken when nothing else is left (see {@link #theftSlot}). */
     public static boolean weaponOrArmor(Material material) {
         String name = material.name().toUpperCase(Locale.ROOT);
         return name.endsWith("_SWORD") || name.endsWith("_AXE") || name.endsWith("_SPEAR") || name.endsWith("_HELMET")

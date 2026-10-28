@@ -32,7 +32,7 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
 /**
- * Steals one hotbar stack instead of dealing damage and runs off with it. The item is never lost: it drops when the
+ * Steals one stack instead of dealing damage and runs off with it: ordinary items first, weapons and armor last. The item is never lost: it drops when the
  * thief dies, is dropped when the plugin removes the thief, and goes straight back to its owner when the thief dies
  * somewhere a dropped item would burn or fall out of the world.
  */
