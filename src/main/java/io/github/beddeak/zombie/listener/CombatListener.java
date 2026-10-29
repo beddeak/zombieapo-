@@ -22,6 +22,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityResurrectEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
@@ -96,7 +97,7 @@ public final class CombatListener implements Listener {
         WorldData data = core.data(player.getWorld());
         if (data == null || !core.active(player.getWorld())) { return; }
         data.stats(player.getUniqueId()).deaths++;
-        core.save();
+        core.statsChanged();
         if (hit != null && core.ticks() - hit.tick() <= BLAME_TICKS) {
             event.deathMessage(Component.text(player.getName() + "이(가) " + hit.attacker() + "에게 당했습니다."));
         }
@@ -144,11 +145,19 @@ public final class CombatListener implements Listener {
         WorldData data = core.data(zombie.getWorld());
         if (killer != null && data != null && core.active(zombie.getWorld())) {
             data.stats(killer.getUniqueId()).kill(type);
-            core.save();
+            core.statsChanged();
         }
         if (type == ZombieType.PLAYER) {
             UUID owner = Tags.uuid(zombie, Keys.OWNER);
             if (owner != null && core.store().playerZombies().remove(owner, zombie.getUniqueId())) { core.save(); }
+        }
+    }
+
+    /** A thief holding a stolen totem is not saved by it, so the totem drops whole when the thief dies. */
+    @EventHandler(ignoreCancelled = true)
+    public void resurrect(EntityResurrectEvent event) {
+        if (event.getEntity() instanceof Zombie zombie && Tags.custom(zombie) && Tags.uuid(zombie, Keys.STOLEN_FROM) != null) {
+            event.setCancelled(true);
         }
     }
 

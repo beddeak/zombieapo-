@@ -35,6 +35,7 @@ public final class HordeManager {
     public enum Kind { REGULAR, SCREAMER, MANUAL, CONTINUOUS }
 
     private static final double SECTOR = 0.6;
+    private static final long CONTINUOUS_RECHECK_TICKS = 100;
 
     private final class Horde {
         final int id = ThreadLocalRandom.current().nextInt(1, Integer.MAX_VALUE);
@@ -178,6 +179,11 @@ public final class HordeManager {
     private void wave(World world, Horde horde) {
         Settings settings = core.settings();
         Settings.Horde options = settings.horde();
+        if (horde.kind == Kind.CONTINUOUS && remaining(world) >= options.maxWaveTotal()) {
+            // Endless waves would otherwise stack up while nobody fights them; wait until a wave's worth is gone.
+            horde.nextWaveAt = core.ticks() + CONTINUOUS_RECHECK_TICKS;
+            return;
+        }
         List<Player> survivors = core.survivors(world);
         int day = core.day(world);
         int perPlayer = HordeMath.capped(HordeMath.perPlayer(options.baseSize(), options.sizePerDay(), day,
@@ -216,8 +222,10 @@ public final class HordeManager {
     private int group(World world, BukkitSampler sampler, Location center, int count, double angle, double halfWidth,
                       double min, double max, SpawnContext context, Player target, int sprinterBonus) {
         boolean cave = world.getEnvironment() == World.Environment.NETHER;
+        int globalCap = core.settings().spawning().globalCap();
         int spawned = 0;
         for (int index = 0; index < count; index++) {
+            if (core.registry().size() >= globalCap) { break; }
             Optional<SpawnLocator.Spot> spot = SpawnLocator.find(sampler, center.getX(), center.getY(), center.getZ(), min, max,
                     angle, halfWidth, cave, ThreadLocalRandom.current(), 6);
             if (spot.isEmpty()) { continue; }

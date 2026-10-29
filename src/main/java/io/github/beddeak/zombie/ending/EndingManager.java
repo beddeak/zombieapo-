@@ -267,6 +267,8 @@ public final class EndingManager {
         World world = block.getWorld();
         BlockPos pos = core.store().radios().get(world.getName());
         if (pos == null || !pos.matches(block)) { return; }
+        // With the antenna in hand, clicking the radio's top or side places it there; placedAntenna checks the spot.
+        if (EndingItem.ANTENNA.is(event.getItem())) { return; }
         event.setCancelled(true);
         if (event.getHand() != EquipmentSlot.HAND) { return; }
         Player player = event.getPlayer();
@@ -431,7 +433,8 @@ public final class EndingManager {
             runtime.waitingToResume = false;
             startEscapeHorde(world, ending);
         }
-        if (!survivors.isEmpty()) { ending.remainingTicks = Math.max(0, ending.remainingTicks - 20); }
+        // The clock keeps running while the last runner is on the respawn screen; it only pauses when nobody is online.
+        if (stillRunning(world, ending) > 0) { ending.remainingTicks = Math.max(0, ending.remainingTicks - 20); }
         Location point = ending.escapePoint.center(world);
         for (Player player : survivors) {
             Location location = player.getLocation();
@@ -496,9 +499,11 @@ public final class EndingManager {
         for (UUID id : ending.escaped) { saved.add(name(id)); }
         List<String> left = new ArrayList<>();
         for (Player player : world.getPlayers()) {
+            GameMode mode = player.getGameMode();
             if (ending.escaped.contains(player.getUniqueId())) {
                 Msg.title(List.of(player), "구조 성공!", NamedTextColor.GOLD, "무사히 탈출했습니다");
-            } else {
+            } else if (mode == GameMode.SURVIVAL || mode == GameMode.ADVENTURE) {
+                // Spectators and creative players (the camera) were never in the run, so they are not left behind.
                 left.add(player.getName());
                 Msg.title(List.of(player), "구조 헬기를 놓쳤습니다...", NamedTextColor.RED, "좀비 세상에 남겨졌습니다");
             }

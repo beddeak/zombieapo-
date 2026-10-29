@@ -130,7 +130,7 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
                 sender.sendMessage(message(world.getName() + ": 시작 준비 중 (남은 시간 " + Msg.clock(core.preparingSeconds(world)) + ")"));
                 continue;
             }
-            long timeOfDay = DayMath.timeOfDay(world.getFullTime());
+            long timeOfDay = DayMath.timeOfDay(core.fullTime(world));
             sender.sendMessage(message(world.getName() + ": " + core.day(world) + "일차, 시각 " + timeOfDay
                     + (core.bloodMoon(world) ? ", 블러드문" : "")
                     + (core.hordes().running(world) ? ", 좀비 웨이브 진행 중(남은 " + core.hordes().remaining(world) + ")" : "")
@@ -258,7 +258,7 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
         World world = world(sender, args, set ? 3 : 1, true);
         if (world == null) { return; }
         if (!set) {
-            sender.sendMessage(message(world.getName() + ": " + core.day(world) + "일차 (시각 " + DayMath.timeOfDay(world.getFullTime()) + ")"));
+            sender.sendMessage(message(world.getName() + ": " + core.day(world) + "일차 (시각 " + DayMath.timeOfDay(core.fullTime(world)) + ")"));
             return;
         }
         Integer day = args.length >= 3 ? number(args[2]) : null;

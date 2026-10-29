@@ -91,6 +91,8 @@ public final class ZombieFactory {
         }
         if (context.owner() != null) { Tags.uuid(zombie, Keys.OWNER, context.owner()); }
         zombie.setShouldBurnInDay(false);
+        // Picked-up gear (a dead player's sword and armor) would vanish with the zombie on a self-destruct or stop.
+        zombie.setCanPickupItems(false);
 
         Settings settings = core.settings();
         double baseFollow = Attributes.base(zombie, Attribute.FOLLOW_RANGE, 35);

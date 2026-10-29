@@ -3,6 +3,7 @@ package io.github.beddeak.zombie.event;
 import io.github.beddeak.zombie.Apocalypse;
 import io.github.beddeak.zombie.Msg;
 import io.github.beddeak.zombie.config.Settings;
+import io.github.beddeak.zombie.data.EndingData;
 import io.github.beddeak.zombie.data.WorldData;
 import io.github.beddeak.zombie.logic.DayMath;
 import java.util.concurrent.ThreadLocalRandom;
@@ -22,7 +23,8 @@ public final class WorldClock {
     public void second(World world, WorldData data) {
         Settings settings = core.settings();
         int day = core.day(world);
-        long timeOfDay = DayMath.timeOfDay(world.getFullTime());
+        long timeOfDay = DayMath.timeOfDay(core.fullTime(world));
+        boolean over = data.ending.phase == EndingData.Phase.DONE;
         boolean changed = false;
 
         if (day > data.lastDayShown) {
@@ -39,7 +41,12 @@ public final class WorldClock {
             boolean due = data.hordeDay > 0 && !data.hordeDone && day >= data.hordeDay
                     && (day > data.hordeDay || timeOfDay >= data.hordeTime);
             if (due) {
-                if (core.hordes().start(world, HordeManager.Kind.REGULAR)) {
+                if (over || core.hordes().continuous(world)) {
+                    // Assembly, finale and escape already bring endless waves, and after the ending nothing should
+                    // interrupt it; today's regular wave is skipped instead of piling up behind them.
+                    data.hordeDone = true;
+                    changed = true;
+                } else if (core.hordes().start(world, HordeManager.Kind.REGULAR)) {
                     data.hordeDone = true;
                     changed = true;
                 }
@@ -52,7 +59,7 @@ public final class WorldClock {
         }
 
         Settings.Tank tank = settings.tank();
-        if (tank.enabled() && DayMath.everyNth(day, tank.everyDays()) && data.tankDay != day && DayMath.night(timeOfDay)
+        if (!over && tank.enabled() && DayMath.everyNth(day, tank.everyDays()) && data.tankDay != day && DayMath.night(timeOfDay)
                 && core.tanks().spawnNearSurvivor(world)) {
             data.tankDay = day;
             changed = true;

@@ -9,7 +9,6 @@ import io.github.beddeak.zombie.zombie.Keys;
 import io.github.beddeak.zombie.zombie.Tags;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -60,7 +59,9 @@ public final class ThiefAbility implements Ability {
         ItemStack previous = equipment.getItemInMainHand();
         if (!previous.isEmpty()) { zombie.getWorld().dropItemNaturally(zombie.getLocation(), previous); }
         equipment.setItemInMainHand(stolen);
-        equipment.setItemInMainHandDropChance(1.0f);
+        // Vanilla drops a held item only when a player killed the mob, and then with random durability, so died()
+        // hands it back itself.
+        equipment.setItemInMainHandDropChance(0f);
         Tags.uuid(zombie, Keys.STOLEN_FROM, victim.getUniqueId());
         int fleeTicks = core.settings().types().thief().fleeSeconds() * 20;
         zombie.getPersistentDataContainer().set(Keys.MARK, PersistentDataType.LONG, zombie.getWorld().getGameTime() + fleeTicks);
@@ -71,7 +72,7 @@ public final class ThiefAbility implements Ability {
         WorldData data = core.data(victim.getWorld());
         if (data != null) {
             data.stats(victim.getUniqueId()).stolen++;
-            core.save();
+            core.statsChanged();
         }
         victim.sendMessage(Msg.alert("도둑 좀비가 ").append(stolen.displayName())
                 .append(Component.text("을(를) 훔쳐 달아났습니다! 잡으면 돌려받을 수 있습니다.", NamedTextColor.RED)));
@@ -89,20 +90,22 @@ public final class ThiefAbility implements Ability {
         zombie.getPathfinder().moveTo(zombie.getLocation().add(away), 1.3);
     }
 
+    /**
+     * Whatever killed the thief, the stolen item comes back unchanged: dropped where it fell, or straight to its owner
+     * when it died in lava or the void.
+     */
     @Override public void died(Zombie zombie, EntityDeathEvent event) {
         UUID owner = Tags.uuid(zombie, Keys.STOLEN_FROM);
         if (owner == null) { return; }
-        ItemStack stolen = zombie.getEquipment().getItemInMainHand();
+        EntityEquipment equipment = zombie.getEquipment();
+        ItemStack stolen = equipment.getItemInMainHand().clone();
         if (stolen.isEmpty()) { return; }
-        if (!unsafe(zombie)) { return; }
-        for (Iterator<ItemStack> drops = event.getDrops().iterator(); drops.hasNext(); ) {
-            ItemStack drop = drops.next();
-            if (drop.isSimilar(stolen) && drop.getAmount() == stolen.getAmount()) {
-                drops.remove();
-                break;
-            }
+        equipment.setItemInMainHand(null);
+        if (unsafe(zombie)) {
+            giveBack(owner, stolen);
+        } else {
+            event.getDrops().add(stolen);
         }
-        giveBack(owner, stolen.clone());
     }
 
     /** Called before the plugin removes a thief: whatever it holds drops where it stands. */

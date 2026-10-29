@@ -46,7 +46,7 @@ public final class BloodMoonManager {
     public void second(World world, WorldData data) {
         Settings settings = core.settings();
         State state = states.computeIfAbsent(world.getName(), name -> new State());
-        long now = world.getFullTime();
+        long now = core.fullTime(world);
         int day = core.day(world);
         boolean natural = settings.bloodMoon().enabled()
                 && DayMath.bloodMoonNight(day, settings.bloodMoon().everyDays(), DayMath.timeOfDay(now))
@@ -72,7 +72,7 @@ public final class BloodMoonManager {
 
     public void forceStart(World world, WorldData data) {
         State state = states.computeIfAbsent(world.getName(), name -> new State());
-        state.forcedUntil = DayMath.nextMorning(world.getFullTime());
+        state.forcedUntil = DayMath.nextMorning(core.fullTime(world));
         state.suppressedUntil = Long.MIN_VALUE;
         second(world, data);
     }
@@ -80,7 +80,7 @@ public final class BloodMoonManager {
     public void forceStop(World world, WorldData data) {
         State state = states.computeIfAbsent(world.getName(), name -> new State());
         state.forcedUntil = Long.MIN_VALUE;
-        state.suppressedUntil = DayMath.nextMorning(world.getFullTime());
+        state.suppressedUntil = DayMath.nextMorning(core.fullTime(world));
         second(world, data);
     }
 

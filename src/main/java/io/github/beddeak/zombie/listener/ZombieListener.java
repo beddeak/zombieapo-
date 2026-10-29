@@ -54,7 +54,7 @@ public final class ZombieListener implements Listener {
             case TAG -> {
                 Zombie zombie = (Zombie) entity;
                 if (Tags.type(zombie) != null) { return; }
-                if (core.crowded(zombie.getLocation())) {
+                if (core.registry().size() >= core.settings().spawning().globalCap() || core.crowded(zombie.getLocation())) {
                     event.setCancelled(true);
                     return;
                 }

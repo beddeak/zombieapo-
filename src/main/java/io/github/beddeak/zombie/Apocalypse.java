@@ -67,10 +67,14 @@ public class Apocalypse {
     private static final int COUNTDOWN = 3;
     /** Preparations longer than this (seconds) also get a boss bar and a chat notice; shorter ones are just the intro. */
     private static final int LONG_PREPARATION = 10;
+    /** Kill and death counts change constantly in a fight, so on their own they are written at most this often. */
+    private static final long STATS_SAVE_TICKS = 600;
     private Settings settings;
     private BukkitTask task;
     private long ticks;
     private boolean dirty;
+    private boolean statsDirty;
+    private long lastSave;
     /** Type of the zombie whose explosion is running right now, or null. */
     private ZombieType zombieBlast;
 
@@ -139,7 +143,7 @@ public class Apocalypse {
      */
     public boolean start(World world, int graceSeconds) {
         if (registered(world)) { return false; }
-        WorldData data = new WorldData(DayMath.dayIndex(world.getFullTime()));
+        WorldData data = new WorldData(DayMath.dayIndex(fullTime(world)));
         store.worlds().put(world.getName(), data);
         if (graceSeconds <= 0) {
             begin(world, data);
@@ -163,7 +167,7 @@ public class Apocalypse {
         hidePreparation(world);
         data.preparingTicks = 0;
         data.preparingTotal = 0;
-        data.startDay = DayMath.dayIndex(world.getFullTime());
+        data.startDay = DayMath.dayIndex(fullTime(world));
         data.lastDayShown = 0;
         data.quietSurfaceTicks = settings.start().quietSurfaceSeconds() * 20;
         applySpawnSettings(world);
@@ -325,15 +329,32 @@ public class Apocalypse {
         return worlds;
     }
 
+    /**
+     * Absolute time that drives days and nights. The Nether and the End have no world clock (their time reads 0), so
+     * they follow the main overworld.
+     */
+    public long fullTime(World world) {
+        return clockWorld(world).getFullTime();
+    }
+
+    private World clockWorld(World world) {
+        World.Environment environment = world.getEnvironment();
+        if (environment != World.Environment.NETHER && environment != World.Environment.THE_END) { return world; }
+        List<World> worlds = plugin.getServer().getWorlds();
+        return worlds.isEmpty() ? world : worlds.get(0);
+    }
+
+    /** Day number; the Nether and the End share the overworld's day while the apocalypse runs there too. */
     public int day(World world) {
-        WorldData data = data(world);
-        return data == null ? 1 : DayMath.day(world.getFullTime(), data.startDay);
+        World clock = clockWorld(world);
+        WorldData data = clock != world && data(clock) != null ? data(clock) : data(world);
+        return data == null ? 1 : DayMath.day(clock.getFullTime(), data.startDay);
     }
 
     public void setDay(World world, int day) {
         WorldData data = data(world);
         if (data == null) { return; }
-        data.startDay = DayMath.startDayFor(world.getFullTime(), day);
+        data.startDay = DayMath.startDayFor(fullTime(world), day);
         data.lastDayShown = day - 1;
         data.hordeDay = 0;
         data.hordeDone = false;
@@ -428,8 +449,10 @@ public class Apocalypse {
                 safely("ending", () -> ending.second(world, data));
                 safely("assembly", () -> assembly.second(world, data));
             }
-            if (dirty) {
+            if (dirty || (statsDirty && ticks - lastSave >= STATS_SAVE_TICKS)) {
                 dirty = false;
+                statsDirty = false;
+                lastSave = ticks;
                 store.save();
             }
         }
@@ -460,6 +483,9 @@ public class Apocalypse {
 
     /** Marks data.yml for writing; the main loop writes it at most once a second and shutdown writes it at once. */
     public void save() { dirty = true; }
+
+    /** Kills, deaths or thefts changed: written with the next save, or within {@link #STATS_SAVE_TICKS}. */
+    public void statsChanged() { statsDirty = true; }
 
     public JavaPlugin plugin() { return plugin; }
     public Logger logger() { return logger; }
