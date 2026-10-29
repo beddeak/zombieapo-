@@ -22,6 +22,7 @@ public final class ReplaceRules {
 
     public static Action decide(EntityType type, SpawnReason reason, Settings.Replace replace) {
         if (!replace.reasons().contains(reason)) { return Action.IGNORE; }
+        if (fromSpawner(reason) && replace.keepFromSpawner().contains(type)) { return Action.IGNORE; }
         Class<? extends Entity> entityClass = type.getEntityClass();
         if (entityClass == null) { return Action.IGNORE; }
         if (Zombie.class.isAssignableFrom(entityClass)) { return Action.TAG; }

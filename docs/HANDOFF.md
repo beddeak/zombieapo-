@@ -33,8 +33,7 @@
   - 조립 시간: 라디오나 안테나를 조합하면 재료만 들어가고 그 작업대에서 조립한다(라디오 90초, 안테나 45초). 조립 중 좀비 웨이브가 계속 오고, 작업대 8블록 안에 생존자가 없으면 멈춘다. 진행은 data.yml에 저장되고 재시작 뒤 작업대 근처로 오면 이어진다. stop 때는 아이템을 바로 준다. 크래프터로는 만들 수 없다.
   - 조합법은 사용자가 준 그림대로 배치가 정해진 조합법(shaped)이다. 설정은 `shape` + `keys`.
     - 라디오 `DRD / RHR / TBT`: D 다이아몬드 블록, R 레드스톤 블록, H 바다의 심장, T 레드스톤 횃불, B 소리 블록
-    - 안테나 ` C  / QRQ /  C `: C 철 사슬, Q 네더 석영, R 레드스톤 가루
-    - 사용자는 안테나 재료를 말로 "네더와트, 사슬, 레드스톤"이라고 했다. 그림의 흰 결정은 네더 석영으로 보여 석영으로 넣었고, **사용자 확인이 필요하다.**
+    - 안테나 ` C  / BRB /  C `: C 철 사슬, B 블레이즈 막대기, R 레드스톤 가루 (2026-10-29에 네더 석영에서 바꿈)
     - 피뢰침은 이 버전에서 산화되어 모양이 바뀌므로 안테나 블록은 엔드 막대기로 했다.
   - 시작하는 순간 그 월드의 로드된 바닐라 적대적 몹을 지운다. 동물, 주민, 골렘, 이름표 몹, 제외 몹은 남긴다.
   - 사용자 서버의 config.yml은 지난번에 넣은 기본값 그대로여서 새 기본값으로 다시 바꿨다(이전 파일은 임시 폴더에 백업).
@@ -51,6 +50,12 @@
 
 - 2026-10-28: GitHub `beddeak/zombieapo-`의 스폰 상향 커밋을 받아오고 JAR를 다시 빌드해 커밋했다(`0d5663e`). 서버 폴더에 `맵 초기화.bat`(world와 data.yml 삭제, 서버가 켜져 있으면 거부)을 만들었다.
 - 2026-10-28: 시작 후 3분 동안 지상 스폰을 조용히 막는다(`start.quiet-surface-seconds`, 기본 180). 자연 스폰·몬스터 대체·추가 스폰 모두 해당, 동굴과 스포너는 제외. 알림 없음, `/apoc status`에만 표시. 테스트 복사본에서 타이머 감소만 확인했고, 실제 스폰 차단은 플레이어 접속 확인이 필요하다.
+- 2026-10-29 촬영용 보강(0.2.0 유지). 다른 PC에서 임시 JDK 25로 빌드했고 테스트 71개가 통과했다. 서버와 클라이언트 확인은 아직 하지 않았다.
+  - 탈출 단계에서 남은 사람이 리스폰 화면에 있는 순간 엔딩이 끝나던 버그를 고쳤다(`EndingRules.escapeOver`).
+  - 사망 메시지에 좀비 종류를 표시한다. `CombatListener`가 마지막으로 때린 커스텀 좀비를 10초 동안 기억한다. 폭발은 `Apocalypse.zombieBlast(type, …)`로 타입을 넘긴다.
+  - 생존 기록: `WorldData.stats`(플레이어별 처치 타입·사망·도둑 피해, data.yml `stats`). 엔딩 3초 뒤 채팅으로 띄우고 `/apoc stats`로 중간에 본다. 표는 `logic/ResultBoard`가 만든다.
+  - 안테나 재료를 블레이즈 막대기로 바꿨다(사용자 결정). 스포너 블레이즈는 좀비로 바꾸지 않는다(`replace.keep-from-spawner: [BLAZE]`).
+  - **사용자 서버의 config.yml은 자동으로 바뀌지 않는다.** 안테나 조합법을 바꾸려면 `ending.antenna-recipe`를 새 값으로 고쳐야 한다. `keep-from-spawner`는 키가 없으면 기본값 BLAZE가 적용된다.
 
 ## 코드 구조
 
@@ -75,11 +80,10 @@
 
 ## 다음 작업
 
-1. 서버 콘솔에서 `stop` → `build/libs/ZombieApocalypse-0.2.0.jar`를 `server/plugins`에 덮어쓰기(같은 파일 이름) → 사용자 bat로 다시 켜기. config.yml은 이미 새 기본값이다.
+1. 서버 콘솔에서 `stop` → `build/libs/ZombieApocalypse-0.2.0.jar`를 `server/plugins`에 덮어쓰기(같은 파일 이름) → 사용자 bat로 다시 켜기. 서버 config.yml의 `ending.antenna-recipe`를 `shape: [" C ", "BRB", " C "]`, `keys: {C: IRON_CHAIN, B: BLAZE_ROD, R: REDSTONE}`로 고친다(아니면 계속 네더 석영).
 2. 접속 → `/apoc start` → [TESTING](TESTING.md) 체크리스트 확인. 이번에는 엔딩의 조립(작업대 보스바, 멈춤, 완성 지급)과 안테나 설치를 먼저 본다. `/apoc egg all`로 타입별 확인. 결과는 BUILD_REPORT와 TESTING에 기록한다.
-3. 안테나 재료가 네더 석영이 맞는지 사용자 확인. 네더 사마귀라면 `ending.antenna-recipe.keys`의 `Q`를 `NETHER_WART`로 바꾸고 코드 기본값(`Settings.ANTENNA_SHAPE`)도 맞춘다.
-4. 사용자에게 제안한 몰입·연출 아이디어 중 고른 것을 PLAN에 적고 단계별로 구현한다.
-5. 플레이 결과에 따라 밸런스 조정. 수치는 대부분 `server/plugins/ZombieApocalypse/config.yml`에서 바꾼다.
-6. PLAN "확인이 필요한 점" 결정. 새 후보 타입, 블러드문 주기(현재 7일), 호드 보상(현재 없음).
+3. 사용자에게 제안한 몰입·연출 아이디어 중 고른 것을 PLAN에 적고 단계별로 구현한다.
+4. 플레이 결과에 따라 밸런스 조정. 수치는 대부분 `server/plugins/ZombieApocalypse/config.yml`에서 바꾼다.
+5. PLAN "확인이 필요한 점" 결정. 새 후보 타입, 블러드문 주기(현재 7일), 호드 보상(현재 없음).
 
 상세 설계: [PLAN](../PLAN.md). 검증: [BUILD_REPORT](BUILD_REPORT.md), 절차: [TESTING](TESTING.md).

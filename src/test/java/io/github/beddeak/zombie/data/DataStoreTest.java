@@ -2,6 +2,7 @@ package io.github.beddeak.zombie.data;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import io.github.beddeak.zombie.zombie.ZombieType;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -43,6 +44,12 @@ class DataStoreTest {
         data.ending.escapePoint = new BlockPos(100, 70, -5);
         data.ending.escaped.add(escaped);
         data.ending.originalModes.put(escaped, GameMode.ADVENTURE);
+        PlayerStats stats = data.stats(escaped);
+        stats.kill(ZombieType.SPRINTER);
+        stats.kill(ZombieType.SPRINTER);
+        stats.kill(ZombieType.TANK);
+        stats.deaths = 3;
+        stats.stolen = 1;
         store.worlds().put("world.with.dots", data);
         store.radios().put("world.with.dots", new BlockPos(1, 64, 2));
         store.antennas().put("world.with.dots", new BlockPos(1, 65, 2));
@@ -80,6 +87,10 @@ class DataStoreTest {
         assertEquals(new BlockPos(100, 70, -5), read.ending.escapePoint);
         assertEquals(List.of(escaped), List.copyOf(read.ending.escaped));
         assertEquals(GameMode.ADVENTURE, read.ending.originalModes.get(escaped));
+        PlayerStats readStats = read.stats.get(escaped);
+        assertEquals(java.util.Map.of(ZombieType.SPRINTER, 2, ZombieType.TANK, 1), readStats.kills);
+        assertEquals(3, readStats.deaths);
+        assertEquals(1, readStats.stolen);
         assertEquals(new BlockPos(1, 64, 2), loaded.radios().get("world.with.dots"));
         assertEquals(zombie, loaded.playerZombies().get(owner));
         assertEquals(List.of("abc", "def"), loaded.pendingItems().get(owner));

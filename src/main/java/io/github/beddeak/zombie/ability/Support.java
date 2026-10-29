@@ -1,6 +1,7 @@
 package io.github.beddeak.zombie.ability;
 
 import io.github.beddeak.zombie.Apocalypse;
+import io.github.beddeak.zombie.zombie.ZombieType;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -76,9 +77,9 @@ final class Support {
     }
 
     /** Boomer/bomber explosion, only while the world still runs the apocalypse. It does not hurt other zombies. */
-    static void explode(Apocalypse core, Location location, double power, boolean breakBlocks) {
+    static void explode(Apocalypse core, ZombieType type, Location location, double power, boolean breakBlocks) {
         World world = location.getWorld();
         if (power <= 0 || !core.active(world)) { return; }
-        core.zombieBlast(() -> world.createExplosion(location, (float) power, false, breakBlocks, null));
+        core.zombieBlast(type, () -> world.createExplosion(location, (float) power, false, breakBlocks, null));
     }
 }

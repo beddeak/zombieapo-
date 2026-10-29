@@ -55,6 +55,14 @@ public final class EndingRules {
         return dy == 0 && Math.abs(dx) + Math.abs(dz) == 1;
     }
 
+    /**
+     * The escape ends when time runs out, or once someone made it and nobody is left to run. {@code stillRunning}
+     * counts players waiting to respawn, so one death does not end the escape for them.
+     */
+    public static boolean escapeOver(int escaped, int stillRunning, int remainingTicks) {
+        return remainingTicks <= 0 || (escaped > 0 && stillRunning == 0);
+    }
+
     /** Block column at {@code distance} from a center in the direction {@code angle} (radians). */
     public static int[] column(double centerX, double centerZ, double angle, double distance) {
         return new int[]{(int) Math.floor(centerX + Math.cos(angle) * distance), (int) Math.floor(centerZ + Math.sin(angle) * distance)};

@@ -57,9 +57,10 @@ class SettingsTest {
         assertEquals(6, settings.start().graceSeconds());
         assertEquals(180, settings.start().quietSurfaceSeconds());
         assertEquals(Material.END_ROD, settings.ending().antennaBlock());
-        assertEquals(List.of(" C ", "QRQ", " C "), settings.ending().antennaRecipe().rows());
-        assertEquals(java.util.Map.of('C', Material.IRON_CHAIN, 'Q', Material.QUARTZ, 'R', Material.REDSTONE),
+        assertEquals(List.of(" C ", "BRB", " C "), settings.ending().antennaRecipe().rows());
+        assertEquals(java.util.Map.of('C', Material.IRON_CHAIN, 'B', Material.BLAZE_ROD, 'R', Material.REDSTONE),
                 settings.ending().antennaRecipe().keys());
+        assertEquals(java.util.Set.of(EntityType.BLAZE), settings.replace().keepFromSpawner());
         assertEquals(90, settings.ending().assembly().radioSeconds());
         assertEquals(45, settings.ending().assembly().antennaSeconds());
         assertEquals(8, settings.ending().finale().height());

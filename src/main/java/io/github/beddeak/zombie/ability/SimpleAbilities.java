@@ -76,7 +76,7 @@ final class SimpleAbilities {
                 location.getWorld().spawnParticle(Particle.LARGE_SMOKE, location, 4, 0.3, 0.4, 0.3, 0.01);
                 return true;
             }
-            Support.explode(core, location, power, breakBlocks);
+            Support.explode(core, ZombieType.BOOMER, location, power, breakBlocks);
             return false;
         }
 

@@ -1,5 +1,6 @@
 package io.github.beddeak.zombie.data;
 
+import io.github.beddeak.zombie.zombie.ZombieType;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -225,6 +226,23 @@ public final class DataStore {
                 }
             }
         }
+        ConfigurationSection stats = section.getConfigurationSection("stats");
+        if (stats != null) {
+            for (String id : stats.getKeys(false)) {
+                UUID uuid = uuid(id);
+                ConfigurationSection entry = stats.getConfigurationSection(id);
+                if (uuid == null || entry == null) { continue; }
+                PlayerStats target = data.stats(uuid);
+                target.deaths = Math.max(0, entry.getInt("deaths"));
+                target.stolen = Math.max(0, entry.getInt("stolen"));
+                ConfigurationSection kills = entry.getConfigurationSection("kills");
+                if (kills == null) { continue; }
+                for (String key : kills.getKeys(false)) {
+                    int count = kills.getInt(key);
+                    if (count > 0) { ZombieType.parse(key).ifPresent(type -> target.kills.put(type, count)); }
+                }
+            }
+        }
         return data;
     }
 
@@ -258,6 +276,14 @@ public final class DataStore {
         target.set("escaped", ending.escaped.stream().map(UUID::toString).toList());
         ConfigurationSection modes = target.createSection("original-modes");
         ending.originalModes.forEach((id, mode) -> modes.set(id.toString(), mode.name()));
+        ConfigurationSection stats = section.createSection("stats");
+        data.stats.forEach((id, player) -> {
+            ConfigurationSection entry = stats.createSection(id.toString());
+            entry.set("deaths", player.deaths);
+            entry.set("stolen", player.stolen);
+            ConfigurationSection kills = entry.createSection("kills");
+            player.kills.forEach((type, count) -> kills.set(type.configKey(), count));
+        });
     }
 
     private static YamlConfiguration newYaml() {

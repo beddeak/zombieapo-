@@ -16,7 +16,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class ApocalypseCommandTest {
-    private static final String USAGE = "사용법: /apoc <start|stop|status|reload|spawn|egg|day|bloodmoon|wave|radio|finale|escape>";
+    private static final String USAGE = "사용법: /apoc <start|stop|status|stats|reload|spawn|egg|day|bloodmoon|wave|radio|finale|escape>";
     private final Apocalypse core = mock(Apocalypse.class);
     private final ApocalypseCommand.Reloader reloader = mock(ApocalypseCommand.Reloader.class);
     private final Logger logger = mock(Logger.class);
@@ -31,7 +31,7 @@ class ApocalypseCommandTest {
         when(world.getName()).thenReturn("world");
     }
 
-    @ParameterizedTest @ValueSource(strings = {"start", "stop", "status", "reload", "spawn", "egg", "day", "bloodmoon", "wave", "radio", "finale", "escape"})
+    @ParameterizedTest @ValueSource(strings = {"start", "stop", "status", "stats", "reload", "spawn", "egg", "day", "bloodmoon", "wave", "radio", "finale", "escape"})
     void ordinaryPlayersCannotUseAnySubcommand(String subcommand) throws Exception {
         executor.onCommand(player, command, "apocalypse", new String[]{subcommand});
         verify(player).sendMessage(ApocalypseCommand.message("권한이 없습니다."));
@@ -139,7 +139,7 @@ class ApocalypseCommandTest {
         assertTrue(executor.onTabComplete(player, command, "apoc", new String[]{""}).isEmpty());
         admin();
         assertEquals(List.of("reload", "radio"), executor.onTabComplete(player, command, "apoc", new String[]{"r"}));
-        assertEquals(List.of("start", "stop", "status", "spawn"), executor.onTabComplete(player, command, "apoc", new String[]{"s"}));
+        assertEquals(List.of("start", "stop", "status", "stats", "spawn"), executor.onTabComplete(player, command, "apoc", new String[]{"s"}));
         assertTrue(executor.onTabComplete(player, command, "apoc", new String[]{"x"}).isEmpty());
         assertTrue(executor.onTabComplete(player, command, "apoc", new String[]{"reload", ""}).isEmpty());
         assertEquals(List.of("start", "stop"), executor.onTabComplete(player, command, "apoc", new String[]{"wave", ""}));

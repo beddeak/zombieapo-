@@ -8,7 +8,7 @@ commands:
   apocalypse:
     description: 좀비 아포칼립스 관리
     aliases: [apoc]
-    usage: /<command> <start|stop|status|reload|spawn|egg|day|bloodmoon|wave|radio|finale|escape>
+    usage: /<command> <start|stop|status|stats|reload|spawn|egg|day|bloodmoon|wave|radio|finale|escape>
 permissions:
   zombieapoc.admin:
     description: 좀비 아포칼립스 시작, 종료, 설정 재적용

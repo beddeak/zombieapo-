@@ -33,7 +33,8 @@ public record Settings(
      */
     public record Start(int graceSeconds, int quietSurfaceSeconds) {}
 
-    public record Replace(Set<SpawnReason> reasons, Set<EntityType> exclude, int spawnerNearbyCap) {}
+    /** {@code keepFromSpawner}: mobs left as they are when a spawner makes them (blazes, for the antenna's blaze rods). */
+    public record Replace(Set<SpawnReason> reasons, Set<EntityType> exclude, int spawnerNearbyCap, Set<EntityType> keepFromSpawner) {}
 
     public record Spawning(int monsterSpawnLimit, int ticksPerMonsterSpawn, boolean extraEnabled, int intervalTicks,
                            int perPlayerCap, int globalCap, double countRadius, int perAttempt,
@@ -75,8 +76,8 @@ public record Settings(
 
     static final Shape RADIO_SHAPE = new Shape(List.of("DRD", "RHR", "TBT"), Map.of('D', Material.DIAMOND_BLOCK,
             'R', Material.REDSTONE_BLOCK, 'H', Material.HEART_OF_THE_SEA, 'T', Material.REDSTONE_TORCH, 'B', Material.NOTE_BLOCK));
-    static final Shape ANTENNA_SHAPE = new Shape(List.of(" C ", "QRQ", " C "), Map.of('C', Material.IRON_CHAIN,
-            'Q', Material.QUARTZ, 'R', Material.REDSTONE));
+    static final Shape ANTENNA_SHAPE = new Shape(List.of(" C ", "BRB", " C "), Map.of('C', Material.IRON_CHAIN,
+            'B', Material.BLAZE_ROD, 'R', Material.REDSTONE));
 
     public record Ending(Material radioBlock, Shape radioRecipe, Material antennaBlock, Shape antennaRecipe,
                          Assembly assembly, int minDay, int confirmSeconds, Finale finale, Escape escape, boolean autoStop,
@@ -98,7 +99,8 @@ public record Settings(
                         SpawnReason.TRIAL_SPAWNER, SpawnReason.PATROL)),
                 enums(r, "exclude", EntityType.class, EnumSet.of(EntityType.ENDER_DRAGON, EntityType.WITHER,
                         EntityType.WARDEN, EntityType.ELDER_GUARDIAN)),
-                r.integer("spawner-nearby-cap", 12, 0, 1000));
+                r.integer("spawner-nearby-cap", 12, 0, 1000),
+                enums(r, "keep-from-spawner", EntityType.class, EnumSet.of(EntityType.BLAZE)));
 
         ConfigReader s = reader.child("spawning");
         ConfigReader extra = s.child("extra");

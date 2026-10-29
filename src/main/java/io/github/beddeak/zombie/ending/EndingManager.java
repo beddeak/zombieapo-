@@ -7,22 +7,27 @@ import io.github.beddeak.zombie.config.Settings;
 import io.github.beddeak.zombie.data.BlockPos;
 import io.github.beddeak.zombie.data.DataStore;
 import io.github.beddeak.zombie.data.EndingData;
+import io.github.beddeak.zombie.data.PlayerStats;
 import io.github.beddeak.zombie.data.WorldData;
 import io.github.beddeak.zombie.logic.EndingRules;
+import io.github.beddeak.zombie.logic.ResultBoard;
 import io.github.beddeak.zombie.logic.SpawnLocator;
 import io.github.beddeak.zombie.spawn.BukkitSampler;
 import io.github.beddeak.zombie.zombie.Tags;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
@@ -66,6 +71,8 @@ public final class EndingManager {
 
     private static final int GROUND_SAMPLES = 16;
     private static final int GROUND_SAMPLE_DISTANCE = 16;
+    /** The result board follows the ending titles after a short pause. */
+    private static final long RESULT_DELAY_TICKS = 60;
 
     private final Apocalypse core;
     private final Map<String, Runtime> runtimes = new HashMap<>();
@@ -447,7 +454,17 @@ public final class EndingManager {
         }
         bar(world, runtime, "탈출까지 " + Msg.clock(ending.remainingTicks / 20) + " / 탈출 " + ending.escaped.size() + "명 / 남은 좀비 "
                 + core.hordes().remaining(world), ending);
-        if ((core.survivors(world).isEmpty() && !ending.escaped.isEmpty()) || ending.remainingTicks <= 0) { finish(world, data); }
+        if (EndingRules.escapeOver(ending.escaped.size(), stillRunning(world, ending), ending.remainingTicks)) { finish(world, data); }
+    }
+
+    /** Players who have not escaped yet, including the ones on the respawn screen. */
+    private static int stillRunning(World world, EndingData ending) {
+        int count = 0;
+        for (Player player : world.getPlayers()) {
+            GameMode mode = player.getGameMode();
+            if ((mode == GameMode.SURVIVAL || mode == GameMode.ADVENTURE) && !ending.escaped.contains(player.getUniqueId())) { count++; }
+        }
+        return count;
     }
 
     private void escaped(World world, WorldData data, Player player, Location point) {
@@ -493,6 +510,8 @@ public final class EndingManager {
         core.announce(world, Msg.good("엔딩! 탈출: " + (saved.isEmpty() ? "없음" : String.join(", ", saved))
                 + " / 낙오: " + (left.isEmpty() ? "없음" : String.join(", ", left))));
         core.announce(world, Msg.info(settings.message()));
+        List<Component> board = resultBoard(world);
+        core.runLater(RESULT_DELAY_TICKS, () -> board.forEach(line -> core.announce(world, line)));
         core.save();
         long delay = settings.autoStopDelaySeconds() * 20L;
         if (settings.autoStop()) {
@@ -506,6 +525,32 @@ public final class EndingManager {
                 if (current != null) { restorePlayers(world, current.ending); }
             });
         }
+    }
+
+    /**
+     * Kills, deaths and thefts of everyone who took part, plus the awards. After the ending each player is marked as
+     * escaped or left behind.
+     */
+    public List<Component> resultBoard(World world) {
+        WorldData data = core.data(world);
+        if (data == null) { return List.of(); }
+        boolean done = data.ending.phase == EndingData.Phase.DONE;
+        Set<UUID> players = new LinkedHashSet<>();
+        data.stats.forEach((id, stats) -> {
+            if (!stats.empty()) { players.add(id); }
+        });
+        if (done) { players.addAll(data.ending.escaped); }
+        List<ResultBoard.Entry> entries = new ArrayList<>();
+        for (UUID id : players) {
+            String tag = done ? (data.ending.escaped.contains(id) ? "탈출" : "낙오") : null;
+            entries.add(new ResultBoard.Entry(name(id), tag, data.stats.getOrDefault(id, new PlayerStats())));
+        }
+        ResultBoard.Board board = ResultBoard.build(core.day(world), entries);
+        List<Component> lines = new ArrayList<>();
+        lines.add(Msg.prefix().append(Component.text(board.header(), NamedTextColor.GOLD, TextDecoration.BOLD)));
+        board.rows().forEach(row -> lines.add(Component.text(row, NamedTextColor.WHITE)));
+        board.awards().forEach(award -> lines.add(Component.text(award, NamedTextColor.YELLOW)));
+        return lines;
     }
 
     private static Color index2Color() {

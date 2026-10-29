@@ -18,6 +18,8 @@ replace:
   exclude: [ENDER_DRAGON, WITHER, WARDEN, ELDER_GUARDIAN]
   # 스포너(일반, 시련) 16블록 안의 커스텀 좀비가 이 수 이상이면 스폰을 막기만 하고 좀비를 새로 만들지 않는다
   spawner-nearby-cap: 12
+  # 스포너(일반, 시련)에서 나오면 좀비로 바꾸지 않는 몹. 안테나 재료인 블레이즈 막대기를 얻을 수 있게 블레이즈를 둔다(자연 스폰은 그대로 바꾼다)
+  keep-from-spawner: [BLAZE]
 
 spawning:
   # 아포칼립스가 켜진 월드의 바닐라 몬스터 스폰 상한과 스폰 주기(틱)
@@ -220,8 +222,8 @@ ending:
     keys: {D: DIAMOND_BLOCK, R: REDSTONE_BLOCK, H: HEART_OF_THE_SEA, T: REDSTONE_TORCH, B: NOTE_BLOCK}
   antenna-block: END_ROD
   antenna-recipe:             # 라디오 바로 위나 옆에 붙여 설치해야 구조를 요청할 수 있다
-    shape: [" C ", "QRQ", " C "]
-    keys: {C: IRON_CHAIN, Q: QUARTZ, R: REDSTONE}
+    shape: [" C ", "BRB", " C "]
+    keys: {C: IRON_CHAIN, B: BLAZE_ROD, R: REDSTONE}
   assembly:                   # 조합하면 바로 나오지 않고, 작업대 옆에서 좀비 웨이브를 버티며 조립한다 (0이면 바로 완성)
     radio-seconds: 90
     antenna-seconds: 45

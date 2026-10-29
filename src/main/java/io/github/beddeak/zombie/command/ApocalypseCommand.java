@@ -30,7 +30,7 @@ import org.bukkit.inventory.ItemStack;
 
 public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
     public static final String PERMISSION = "zombieapoc.admin";
-    static final List<String> SUBCOMMANDS = List.of("start", "stop", "status", "reload", "spawn", "egg", "day", "bloodmoon",
+    static final List<String> SUBCOMMANDS = List.of("start", "stop", "status", "stats", "reload", "spawn", "egg", "day", "bloodmoon",
             "wave", "radio", "finale", "escape");
     private static final int MAX_SPAWN = 50;
     private static final int MAX_EGGS = 64;
@@ -60,6 +60,7 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
             case "start" -> start(sender, args);
             case "stop" -> stop(sender, args);
             case "status" -> status(sender);
+            case "stats" -> stats(sender, args);
             case "reload" -> {
                 if (args.length == 1) { reload(sender); } else { usage(sender, label); }
             }
@@ -142,6 +143,13 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
             for (String line : core.ending().status(world)) { sender.sendMessage(Component.text("  " + line)); }
             for (String line : core.assembly().status(world)) { sender.sendMessage(Component.text("  " + line)); }
         }
+    }
+
+    /** {@code stats [world]}: the result board so far, only to the sender. */
+    private void stats(CommandSender sender, String[] args) {
+        World world = world(sender, args, 1, true);
+        if (world == null) { return; }
+        for (Component line : core.ending().resultBoard(world)) { sender.sendMessage(line); }
     }
 
     private void reload(CommandSender sender) {
@@ -401,7 +409,7 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
         } else if (args.length == 2) {
             options = switch (sub) {
                 case "start" -> concat(List.of("now", "60", "300"), worldNames());
-                case "stop" -> worldNames();
+                case "stop", "stats" -> worldNames();
                 case "spawn" -> typeNames();
                 case "egg" -> eggNames();
                 case "day" -> List.of("set");

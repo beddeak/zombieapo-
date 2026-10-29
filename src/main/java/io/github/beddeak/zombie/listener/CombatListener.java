@@ -1,10 +1,15 @@
 package io.github.beddeak.zombie.listener;
 
 import io.github.beddeak.zombie.Apocalypse;
+import io.github.beddeak.zombie.data.WorldData;
 import io.github.beddeak.zombie.zombie.Keys;
 import io.github.beddeak.zombie.zombie.Tags;
 import io.github.beddeak.zombie.zombie.ZombieType;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.entity.AreaEffectCloud;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Firework;
@@ -18,11 +23,18 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 
-/** Routes melee hits, damage, deaths and landed projectiles to the zombie types. */
+/** Routes melee hits, damage, deaths and landed projectiles to the zombie types, and keeps kill and death counts. */
 public final class CombatListener implements Listener {
+    /** A zombie hit this long before a death still counts as the killer. */
+    private static final long BLAME_TICKS = 200;
+
+    private record Hit(String attacker, long tick) {}
+
     private final Apocalypse core;
+    private final Map<UUID, Hit> lastHits = new HashMap<>();
 
     public CombatListener(Apocalypse core) {
         this.core = core;
@@ -52,9 +64,53 @@ public final class CombatListener implements Listener {
     }
 
     private static boolean fromZombie(Entity damager) {
-        if (damager instanceof Zombie) { return true; }
-        if (damager instanceof Projectile projectile) { return projectile.getShooter() instanceof Zombie; }
-        return damager instanceof AreaEffectCloud cloud && cloud.getSource() instanceof Zombie;
+        return zombieSource(damager) != null;
+    }
+
+    /** The zombie behind a hit: the zombie itself, the shooter of a projectile, or the source of a spit cloud. */
+    private static Zombie zombieSource(Entity damager) {
+        if (damager instanceof Zombie zombie) { return zombie; }
+        if (damager instanceof Projectile projectile) { return projectile.getShooter() instanceof Zombie zombie ? zombie : null; }
+        return damager instanceof AreaEffectCloud cloud && cloud.getSource() instanceof Zombie zombie ? zombie : null;
+    }
+
+    /** Remembers which zombie last hurt a player, so a death soon after (a fall, a blast, a puddle) can name it. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void hurt(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player player) || !core.active(player.getWorld())) { return; }
+        String attacker = null;
+        if (core.zombieBlast()) {
+            attacker = attackerName(core.blastType(), null);
+        } else if (event instanceof EntityDamageByEntityEvent byEntity) {
+            Zombie zombie = zombieSource(byEntity.getDamager());
+            if (zombie != null && Tags.custom(zombie)) { attacker = attackerName(core.registry().type(zombie), zombie); }
+        }
+        if (attacker != null) { lastHits.put(player.getUniqueId(), new Hit(attacker, core.ticks())); }
+    }
+
+    /** Names the zombie in the death message and counts the death. Other deaths keep the vanilla message. */
+    @EventHandler(priority = EventPriority.HIGH)
+    public void playerDied(PlayerDeathEvent event) {
+        Player player = event.getEntity();
+        Hit hit = lastHits.remove(player.getUniqueId());
+        WorldData data = core.data(player.getWorld());
+        if (data == null || !core.active(player.getWorld())) { return; }
+        data.stats(player.getUniqueId()).deaths++;
+        core.save();
+        if (hit != null && core.ticks() - hit.tick() <= BLAME_TICKS) {
+            event.deathMessage(Component.text(player.getName() + "이(가) " + hit.attacker() + "에게 당했습니다."));
+        }
+    }
+
+    /** "부머 좀비", a player zombie by its owner's name, the tank as itself. */
+    private static String attackerName(ZombieType type, Zombie zombie) {
+        if (type == null || type == ZombieType.DEFAULT) { return "좀비"; }
+        return switch (type) {
+            case TANK -> "탱크";
+            case PLAYER -> zombie != null && zombie.customName() != null
+                    ? PlainTextComponentSerializer.plainText().serialize(zombie.customName()) + " 좀비" : "플레이어 좀비";
+            default -> type.displayName() + " 좀비";
+        };
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -84,6 +140,12 @@ public final class CombatListener implements Listener {
         if (!(event.getEntity() instanceof Zombie zombie) || !Tags.custom(zombie)) { return; }
         ZombieType type = core.registry().type(zombie);
         core.abilities().get(type).died(zombie, event);
+        Player killer = zombie.getKiller();
+        WorldData data = core.data(zombie.getWorld());
+        if (killer != null && data != null && core.active(zombie.getWorld())) {
+            data.stats(killer.getUniqueId()).kill(type);
+            core.save();
+        }
         if (type == ZombieType.PLAYER) {
             UUID owner = Tags.uuid(zombie, Keys.OWNER);
             if (owner != null && core.store().playerZombies().remove(owner, zombie.getUniqueId())) { core.save(); }

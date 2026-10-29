@@ -109,4 +109,11 @@ class RulesTest {
         int[] column = EndingRules.column(0, 0, 0, 100);
         assertArrayEquals(new int[]{100, 0}, column);
     }
+
+    @Test void escapeWaitsForPlayersWhoAreStillRunningOrRespawning() {
+        assertFalse(EndingRules.escapeOver(1, 1, 600), "the last one left died and is respawning");
+        assertTrue(EndingRules.escapeOver(2, 0, 600), "everyone made it");
+        assertFalse(EndingRules.escapeOver(0, 0, 600), "nobody made it yet");
+        assertTrue(EndingRules.escapeOver(0, 3, 0), "time is up");
+    }
 }

@@ -25,8 +25,14 @@ public final class WorldData {
     public int assemblyTotal;
     public java.util.UUID assemblyCrafter;
     public final EndingData ending = new EndingData();
+    /** Kills, deaths and thefts per player since the start. */
+    public final java.util.Map<java.util.UUID, PlayerStats> stats = new java.util.LinkedHashMap<>();
 
     public WorldData(long startDay) {
         this.startDay = startDay;
+    }
+
+    public PlayerStats stats(java.util.UUID player) {
+        return stats.computeIfAbsent(player, id -> new PlayerStats());
     }
 }

@@ -71,7 +71,8 @@ public class Apocalypse {
     private BukkitTask task;
     private long ticks;
     private boolean dirty;
-    private boolean zombieBlast;
+    /** Type of the zombie whose explosion is running right now, or null. */
+    private ZombieType zombieBlast;
 
     public Apocalypse(JavaPlugin plugin, Settings settings) {
         this.plugin = plugin;
@@ -355,17 +356,22 @@ public class Apocalypse {
         return bloodMoon(world) ? (int) Math.round(cap * settings.bloodMoon().capMultiplier()) : cap;
     }
 
-    /** Runs an explosion caused by a zombie ability; damage it deals while running is "from a zombie". */
-    public void zombieBlast(Runnable explosion) {
-        zombieBlast = true;
+    /** Runs an explosion caused by a zombie ability; damage it deals while running is "from a zombie" of that type. */
+    public void zombieBlast(ZombieType type, Runnable explosion) {
+        zombieBlast = type;
         try {
             explosion.run();
         } finally {
-            zombieBlast = false;
+            zombieBlast = null;
         }
     }
 
     public boolean zombieBlast() {
+        return zombieBlast != null;
+    }
+
+    /** Type of the zombie whose explosion is running, or null outside one. */
+    public ZombieType blastType() {
         return zombieBlast;
     }
 

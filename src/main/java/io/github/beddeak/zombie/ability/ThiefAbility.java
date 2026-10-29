@@ -2,6 +2,7 @@ package io.github.beddeak.zombie.ability;
 
 import io.github.beddeak.zombie.Apocalypse;
 import io.github.beddeak.zombie.Msg;
+import io.github.beddeak.zombie.data.WorldData;
 import io.github.beddeak.zombie.ending.EndingItem;
 import io.github.beddeak.zombie.logic.AbilityRules;
 import io.github.beddeak.zombie.zombie.Keys;
@@ -67,6 +68,11 @@ public final class ThiefAbility implements Ability {
         zombie.setCanPickupItems(false);
         zombie.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, fleeTicks, 1));
         zombie.setTarget(null);
+        WorldData data = core.data(victim.getWorld());
+        if (data != null) {
+            data.stats(victim.getUniqueId()).stolen++;
+            core.save();
+        }
         victim.sendMessage(Msg.alert("도둑 좀비가 ").append(stolen.displayName())
                 .append(Component.text("을(를) 훔쳐 달아났습니다! 잡으면 돌려받을 수 있습니다.", NamedTextColor.RED)));
         victim.getWorld().playSound(victim.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 0.6f);

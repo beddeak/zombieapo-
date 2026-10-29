@@ -25,6 +25,12 @@ class ReplaceRulesTest {
         assertEquals(Action.REPLACE, ReplaceRules.decide(EntityType.SLIME, SpawnReason.NATURAL, replace));
     }
 
+    /** Blaze rods are needed for the antenna: spawner blazes stay, natural ones are still replaced. */
+    @Test void blazesFromSpawnersAreKept() {
+        assertEquals(Action.IGNORE, ReplaceRules.decide(EntityType.BLAZE, SpawnReason.SPAWNER, replace));
+        assertEquals(Action.REPLACE, ReplaceRules.decide(EntityType.BLAZE, SpawnReason.NATURAL, replace));
+    }
+
     @Test void zombieFamilyIsKeptAndTagged() {
         for (EntityType type : new EntityType[]{EntityType.ZOMBIE, EntityType.HUSK, EntityType.DROWNED,
                 EntityType.ZOMBIE_VILLAGER, EntityType.ZOMBIFIED_PIGLIN}) {
@@ -46,7 +52,7 @@ class ReplaceRulesTest {
 
     /** Pigs, cows, foxes and every other non-hostile mob are never replaced or tagged, whatever the spawn reason. */
     @Test void passiveAndNeutralMobsAreNeverTouched() {
-        Settings.Replace everyReason = new Settings.Replace(EnumSet.allOf(SpawnReason.class), Set.of(), 12);
+        Settings.Replace everyReason = new Settings.Replace(EnumSet.allOf(SpawnReason.class), Set.of(), 12, Set.of());
         int checked = 0;
         for (EntityType type : EntityType.values()) {
             Class<? extends Entity> entityClass = type.getEntityClass();

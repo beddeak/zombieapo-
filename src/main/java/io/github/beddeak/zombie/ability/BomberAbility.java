@@ -2,6 +2,7 @@ package io.github.beddeak.zombie.ability;
 
 import io.github.beddeak.zombie.Apocalypse;
 import io.github.beddeak.zombie.config.TypeSettings;
+import io.github.beddeak.zombie.zombie.ZombieType;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -58,7 +59,7 @@ final class BomberAbility implements Ability {
             Location location = zombie.getLocation().add(0, 0.5, 0);
             core.registry().forget(zombie);
             zombie.remove();
-            Support.explode(core, location, power, breakBlocks);
+            Support.explode(core, ZombieType.BOMBER, location, power, breakBlocks);
             return false;
         }
 
