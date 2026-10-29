@@ -30,7 +30,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.GameMode;
-import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.World;
@@ -285,15 +284,15 @@ public class Apocalypse {
     }
 
     /**
-     * Right after the start nothing spawns under the open sky (caves and spawners are unaffected), so the first
-     * minutes are not an instant swarm. Players are not told about it.
+     * Right after the start nothing spawns where daylight reaches (caves and spawners are unaffected), so the first
+     * minutes are not an instant swarm. Sky light also counts under tree canopies and giant mushrooms, which a height
+     * check missed in dark forests. Players are not told about it.
      */
     public boolean quietSurface(Location location) {
         World world = location.getWorld();
         WorldData data = world == null ? null : data(world);
         if (data == null || data.quietSurfaceTicks <= 0) { return false; }
-        return location.getBlockY() > world.getHighestBlockYAt(location.getBlockX(), location.getBlockZ(),
-                HeightMap.MOTION_BLOCKING_NO_LEAVES);
+        return location.getBlock().getLightFromSky() > 0;
     }
 
     /** Seconds left of the quiet surface time, for the status command. */
