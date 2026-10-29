@@ -14,9 +14,13 @@ import org.junit.jupiter.api.Test;
 class TypePickerTest {
     private final TypeSettings types = Settings.defaults().types();
 
-    @Test void dayOneOnlyHasTypesWithoutAStartDay() {
+    @Test void everyRandomTypeAppearsFromDayOne() {
         Map<ZombieType, Integer> weights = TypePicker.weights(types, 1, 0, 0, type -> true);
-        assertEquals(Map.of(ZombieType.DEFAULT, 40, ZombieType.SPRINTER, 8, ZombieType.TOXIC, 8), weights);
+        for (ZombieType type : ZombieType.values()) {
+            assertEquals(type.random(), weights.containsKey(type), type.name());
+        }
+        assertEquals(40, weights.get(ZombieType.DEFAULT));
+        assertEquals(8, weights.get(ZombieType.SPRINTER));
     }
 
     @Test void startDaysUnlockTypesAndBossTypesNeverAppear() {

@@ -40,7 +40,7 @@ zombie:
   follow-range: 40            # 플레이어를 쫓아오는 거리
   show-type-name: false       # true면 머리 위에 [타입] 좀비 이름표를 띄운다
 
-# weight: 랜덤 가중치(0이면 안 나옴), min-day: 이 날짜부터 등장
+# weight: 랜덤 가중치(0이면 안 나옴), min-day: 이 날짜부터 등장 (기본은 모두 0: 1일차부터 전부 나옴)
 types:
   default:
     weight: 40
@@ -51,46 +51,46 @@ types:
     speed-multiplier: 1.6
   boomer:                     # 죽은 자리에서 폭발
     weight: 8
-    min-day: 2
+    min-day: 0
     power: 3.0
     break-blocks: true
     fuse-ticks: 20
   bomber:                     # 크리퍼처럼 다가와 자폭
     weight: 8
-    min-day: 2
+    min-day: 0
     trigger-distance: 2.5
     fuse-ticks: 30
     power: 3.0
     break-blocks: true
   thrower:                    # 맞은 플레이어를 날려버림
     weight: 7
-    min-day: 2
+    min-day: 0
     horizontal: 1.6
     vertical: 1.0
   toxic:                      # 타격 시 독과 허기
     weight: 8
-    min-day: 1
+    min-day: 0
     poison-seconds: 5
     hunger-seconds: 8
   frost:                      # 타격 시 얼어붙음
     weight: 7
-    min-day: 2
+    min-day: 0
     freeze-ticks: 160
     slowness-seconds: 4
   jumper:                     # 높은 곳이나 멀리 있는 플레이어에게 뛰어듦
     weight: 7
-    min-day: 3
+    min-day: 0
     cooldown-ticks: 80
     min-distance: 4.0
     max-distance: 10.0
   ninja:                      # 평소에는 투명
     weight: 6
-    min-day: 3
+    min-day: 0
     reveal-distance: 4.0
     hide-after-ticks: 100
   grabber:                    # 블리츠크랭크처럼 갈고리로 끌어옴 (피할 수 있음)
     weight: 6
-    min-day: 3
+    min-day: 0
     range: 16.0
     hook-speed: 1.2
     windup-ticks: 10
@@ -98,7 +98,7 @@ types:
     damage: 2.0
   multiplier:                 # 죽으면 분열하고 자식도 다시 분열
     weight: 6
-    min-day: 4
+    min-day: 0
     split-min: 2
     split-max: 3
     max-generation: 4         # 0이면 무제한 (주변/전체 상한만 적용)
@@ -108,19 +108,19 @@ types:
     nearby-radius: 32.0
   screamer:                   # 비명으로 주변 좀비를 부르고, 확률로 호드를 부름
     weight: 5
-    min-day: 3
+    min-day: 0
     detect-distance: 16.0
     radius: 24.0
     cooldown-ticks: 200
   healer:                     # 주변 좀비 회복
     weight: 5
-    min-day: 4
+    min-day: 0
     radius: 8.0
     amount: 4.0
     cooldown-ticks: 60
   spitter:                    # 산성 덩어리를 뱉어 웅덩이를 만듦
     weight: 5
-    min-day: 5
+    min-day: 0
     min-distance: 5.0
     max-distance: 16.0
     cooldown-ticks: 100
@@ -129,20 +129,20 @@ types:
     hit-damage: 3.0
   pillar:                     # 여러 마리가 목마처럼 겹친 탑
     weight: 4
-    min-day: 5
+    min-day: 0
     height-min: 3
     height-max: 4
   vampire:                    # 때린 만큼 회복
     weight: 5
-    min-day: 3
+    min-day: 0
     heal-ratio: 1.0
   thief:                      # 핫바 아이템을 훔쳐 도망 (잡으면 반드시 돌려받음)
     weight: 4
-    min-day: 2
+    min-day: 0
     flee-seconds: 20
   necromancer:                # 땅에서 좀비를 일으킴
     weight: 3
-    min-day: 6
+    min-day: 0
     range: 20.0
     cooldown-ticks: 240
     raise-min: 2
@@ -150,7 +150,7 @@ types:
     max-alive: 6
   jockey:                     # 머리 위에 올라타 시야를 가림
     weight: 5
-    min-day: 4
+    min-day: 0
     leap-distance: 3.0
     cooldown-ticks: 100
     ride-ticks: 120

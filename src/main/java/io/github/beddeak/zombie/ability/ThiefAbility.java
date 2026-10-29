@@ -18,6 +18,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Zombie;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -32,17 +33,21 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
 /**
- * Steals one stack instead of dealing damage and runs off with it: ordinary items first, weapons and armor last. The item is never lost: it drops when the
- * thief dies, is dropped when the plugin removes the thief, and goes straight back to its owner when the thief dies
- * somewhere a dropped item would burn or fall out of the world.
+ * Knocks one stack out of the player's inventory instead of dealing damage: ordinary items first, weapons and armor
+ * last. Thieves saved by older versions may still carry a stolen item; the flee, death and removal code below makes
+ * sure that item still comes back.
  */
 public final class ThiefAbility implements Ability {
+    /** Ticks before the knocked-out item can be picked up, so it visibly flies off first. */
+    private static final int KNOCKED_PICKUP_DELAY = 20;
+
     private final Apocalypse core;
 
     ThiefAbility(Apocalypse core) {
         this.core = core;
     }
 
+    /** Every hit knocks one stack out of the inventory onto the ground instead of dealing damage; the thief keeps fighting. */
     @Override public void attacked(Zombie zombie, Player victim, EntityDamageByEntityEvent event) {
         if (Tags.uuid(zombie, Keys.STOLEN_FROM) != null) { return; }
         PlayerInventory inventory = victim.getInventory();
@@ -51,31 +56,20 @@ public final class ThiefAbility implements Ability {
             return item != null && !item.isEmpty() && EndingItem.of(item) == null;
         }, index -> AbilityRules.weaponOrArmor(inventory.getItem(index).getType()), ThreadLocalRandom.current());
         if (slot < 0) { return; }
-        ItemStack stolen = inventory.getItem(slot);
-        if (stolen == null) { return; }
+        ItemStack knocked = inventory.getItem(slot);
+        if (knocked == null) { return; }
         event.setCancelled(true);
         inventory.setItem(slot, null);
-        EntityEquipment equipment = zombie.getEquipment();
-        ItemStack previous = equipment.getItemInMainHand();
-        if (!previous.isEmpty()) { zombie.getWorld().dropItemNaturally(zombie.getLocation(), previous); }
-        equipment.setItemInMainHand(stolen);
-        // Vanilla drops a held item only when a player killed the mob, and then with random durability, so died()
-        // hands it back itself.
-        equipment.setItemInMainHandDropChance(0f);
-        Tags.uuid(zombie, Keys.STOLEN_FROM, victim.getUniqueId());
-        int fleeTicks = core.settings().types().thief().fleeSeconds() * 20;
-        zombie.getPersistentDataContainer().set(Keys.MARK, PersistentDataType.LONG, zombie.getWorld().getGameTime() + fleeTicks);
-        zombie.setRemoveWhenFarAway(false);
-        zombie.setCanPickupItems(false);
-        zombie.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, fleeTicks, 1));
-        zombie.setTarget(null);
+        Item drop = victim.getWorld().dropItem(victim.getLocation().add(0, 1, 0), knocked);
+        drop.setVelocity(Support.flatDirection(zombie.getLocation(), victim.getLocation()).multiply(0.3).setY(0.3));
+        drop.setPickupDelay(KNOCKED_PICKUP_DELAY);
         WorldData data = core.data(victim.getWorld());
         if (data != null) {
             data.stats(victim.getUniqueId()).stolen++;
             core.statsChanged();
         }
-        victim.sendMessage(Msg.alert("도둑 좀비가 ").append(stolen.displayName())
-                .append(Component.text("을(를) 훔쳐 달아났습니다! 잡으면 돌려받을 수 있습니다.", NamedTextColor.RED)));
+        victim.sendMessage(Msg.alert("도둑 좀비가 ").append(knocked.displayName())
+                .append(Component.text("을(를) 쳐서 떨어뜨렸습니다! 얼른 주우세요.", NamedTextColor.RED)));
         victim.getWorld().playSound(victim.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 0.6f);
         victim.getWorld().playSound(zombie.getLocation(), Sound.ENTITY_WITCH_CELEBRATE, 1f, 1.2f);
     }
