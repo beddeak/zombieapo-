@@ -38,7 +38,13 @@ public record Settings(
 
     public record Spawning(int monsterSpawnLimit, int ticksPerMonsterSpawn, boolean extraEnabled, int intervalTicks,
                            int perPlayerCap, int globalCap, double countRadius, int perAttempt,
-                           double minDistance, double maxDistance) {}
+                           double minDistance, double maxDistance, Daylight daylight) {}
+
+    /**
+     * By day, spots that sky light reaches get a smaller crowd cap and fewer extra spawns so players can travel.
+     * Caves, nights and blood moons keep the full numbers.
+     */
+    public record Daylight(boolean enabled, double capMultiplier, int perAttempt) {}
 
     public record ZombieOptions(double followRange, boolean showTypeName) {}
 
@@ -111,11 +117,14 @@ public record Settings(
             minDistance = 20;
             maxDistance = 40;
         }
+        ConfigReader light = s.child("daylight");
+        Daylight daylight = new Daylight(light.bool("enabled", true), light.number("cap-multiplier", 0.25, 0, 1),
+                light.integer("per-attempt", 1, 0, 100));
         Spawning spawning = new Spawning(s.integer("monster-spawn-limit", 150, 0, 10_000),
                 s.integer("ticks-per-monster-spawn", 1, 1, 10_000), extra.bool("enabled", true),
                 extra.integer("interval-ticks", 100, 1, 72_000), extra.integer("per-player-cap", 40, 0, 1000),
                 extra.integer("global-cap", 500, 0, 10_000), extra.number("count-radius", 48, 1, 256),
-                extra.integer("per-attempt", 5, 1, 100), minDistance, maxDistance);
+                extra.integer("per-attempt", 5, 1, 100), minDistance, maxDistance, daylight);
 
         ConfigReader z = reader.child("zombie");
         ZombieOptions zombie = new ZombieOptions(z.number("follow-range", 40, 1, 2048), z.bool("show-type-name", false));

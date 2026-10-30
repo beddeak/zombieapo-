@@ -46,6 +46,7 @@ public final class Abilities {
         abilities.put(ZombieType.THIEF, thief);
         abilities.put(ZombieType.NECROMANCER, new NecromancerAbility(core));
         abilities.put(ZombieType.JOCKEY, jockey);
+        abilities.put(ZombieType.WITCH, new WitchAbility(core));
         abilities.put(ZombieType.TANK, tank);
     }
 

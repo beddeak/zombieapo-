@@ -24,6 +24,7 @@ public enum ZombieType {
     THIEF("도둑", true),
     NECROMANCER("네크로맨서", true),
     JOCKEY("자키", true),
+    WITCH("위치", true),
     /** Spawned where a player died; never picked at random. */
     PLAYER("플레이어", false),
     /** Left 4 Dead style boss; only spawned by its own rules. */
@@ -44,10 +45,10 @@ public enum ZombieType {
 
     public String configKey() { return name().toLowerCase(Locale.ROOT); }
 
-    /** Whether a zombie of the given entity type can carry this type. Pillar and jockey need a land zombie body. */
+    /** Whether a zombie of the given entity type can carry this type. Pillar, jockey and witch need a land zombie body. */
     public boolean fits(EntityType variant) {
         return switch (this) {
-            case PILLAR, JOCKEY, TANK, PLAYER -> variant == EntityType.ZOMBIE || variant == EntityType.HUSK;
+            case PILLAR, JOCKEY, WITCH, TANK, PLAYER -> variant == EntityType.ZOMBIE || variant == EntityType.HUSK;
             default -> true;
         };
     }

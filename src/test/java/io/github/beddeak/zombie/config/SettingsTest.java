@@ -56,6 +56,7 @@ class SettingsTest {
         assertEquals(3, settings.horde().regularEveryDays());
         assertEquals(6, settings.start().graceSeconds());
         assertEquals(180, settings.start().quietSurfaceSeconds());
+        assertEquals(new Settings.Daylight(true, 0.25, 1), settings.spawning().daylight());
         assertEquals(Material.END_ROD, settings.ending().antennaBlock());
         assertEquals(List.of(" C ", "BRB", " C "), settings.ending().antennaRecipe().rows());
         assertEquals(java.util.Map.of('C', Material.IRON_CHAIN, 'B', Material.BLAZE_ROD, 'R', Material.REDSTONE),

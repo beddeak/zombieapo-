@@ -1,6 +1,7 @@
 package io.github.beddeak.zombie;
 
 import io.github.beddeak.zombie.command.ApocalypseCommand;
+import io.github.beddeak.zombie.config.LiveConfig;
 import io.github.beddeak.zombie.config.Settings;
 import io.github.beddeak.zombie.listener.CombatListener;
 import io.github.beddeak.zombie.listener.EggListener;
@@ -8,6 +9,8 @@ import io.github.beddeak.zombie.listener.PlayerListener;
 import io.github.beddeak.zombie.listener.RadioListener;
 import io.github.beddeak.zombie.listener.ZombieListener;
 import java.io.File;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
@@ -34,7 +37,10 @@ public final class ZombieApocalypsePlugin extends JavaPlugin {
         plugins.registerEvents(new PlayerListener(apocalypse), this);
         plugins.registerEvents(new RadioListener(apocalypse), this);
         plugins.registerEvents(new EggListener(apocalypse), this);
-        ApocalypseCommand executor = new ApocalypseCommand(apocalypse, this::reloadSettings, getLogger());
+        YamlConfiguration defaults = YamlConfiguration.loadConfiguration(
+                new InputStreamReader(Objects.requireNonNull(getResource("config.yml"), "Missing bundled config.yml"), StandardCharsets.UTF_8));
+        LiveConfig live = new LiveConfig(new File(getDataFolder(), "config.yml"), defaults);
+        ApocalypseCommand executor = new ApocalypseCommand(apocalypse, this::reloadSettings, live, getLogger());
         var command = Objects.requireNonNull(getCommand("apocalypse"), "Missing apocalypse command descriptor");
         command.setExecutor(executor);
         command.setTabCompleter(executor);

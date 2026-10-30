@@ -66,6 +66,24 @@
   - 네더·엔드는 시계가 없어 `Apocalypse.fullTime`/`day`가 메인 오버월드를 따른다. 잠은 막지 않는다(사용자 결정).
   - 엔딩에서 관전·크리에이티브는 낙오가 아니다. 탈출 타이머는 남은 사람이 리스폰 화면에 있어도 흐른다.
   - 남은 검토 결과(아직 안 고침): 바닐라 스폰 취소가 매 틱 반복되는 비용(`PreCreatureSpawnEvent`로 미리 막기), 탱크 수 제한이 로드된 탱크만 셈, `/time set` 되돌리면 날짜 고정, 탱크가 좁은 곳에 끼어 스폰, 시련 스포너 미완료, 엔딩 후 10초 안 재시작 시 관전자 유지, 네크로맨서 붕괴 처치 기록, 용암 속 증식, `/apoc wave stop`이 피날레 웨이브도 끔, 월드 보더 밖 탈출 지점, 엔딩 뒤 10명이면 생존 기록이 채팅창보다 김.
+- 2026-10-29 새 타입 위치(`WITCH`, 레프트 4 데드 위치)를 추가했다(일반 타입 20종, 0.2.0 유지). 빌드와 테스트 71개 통과. 서버와 클라이언트 확인은 아직 하지 않았다.
+  - `ability/WitchAbility`: 평소 `setAware(false)`로 제자리에서 운다(눈물 파티클, 가스트 소리). 생존자가 `startle-distance`(5블록, 웅크리면 절반) 안에 오거나 때리면 깨운 사람만 쫓는다. 속도·공격력 modifier는 `MOD_TYPE_SPEED`/`MOD_TYPE_DAMAGE`.
+  - 상태는 PDC: `Keys.VICTIM`(쫓는 플레이어), `Keys.MARK`(분노 끝 시각). 그 사람이 죽거나 나가거나 `rage-seconds`(30초)가 지나면 modifier를 지우고 다시 앉는다. 재시작해도 이어진다.
+  - 좀비 웨이브에는 나오지 않는다(`ZombieFactory.pick`에서 `context.horde() != 0`이면 제외). 땅 좀비 몸만 쓴다(`ZombieType.fits`, 드라운드·피글린 제외).
+  - 깨울 때 액션바 문구 "위치를 깨웠습니다! 님은 좆됏어요"는 사용자가 직접 쓴 것이라 그대로 뒀다.
+  - **사용자 서버의 config.yml에는 `types.witch`가 자동으로 추가되지 않는다.** 키가 없으면 코드 기본값(가중치 3)으로 나오며, 수치를 바꾸려면 번들 config.yml의 `witch:` 블록을 복사해 넣는다.
+- 2026-10-30 플레이 피드백 "낮에 돌아다닐 수가 없다" 반영: 낮 지상 스폰 감소(0.2.0 유지). 빌드와 테스트 71개 통과. 서버와 클라이언트 확인은 아직 하지 않았다.
+  - 낮(시각 23000~13000)이고 하늘빛이 닿는 곳이 `Apocalypse.daylight`다. 블러드문 중에는 해당하지 않는다. 판정은 시작 직후 조용한 지상(`quietSurface`)과 같은 하늘빛 기준이다.
+  - 그곳의 주변 상한은 `crowdCap × spawning.daylight.cap-multiplier`(0.25, 1일차 10)다. `crowded()`를 거치는 몬스터 대체와 자연 좀비 태깅에도 적용된다.
+  - `ExtraSpawner`는 낮 지상 자리에 1회 `daylight.per-attempt`(1)마리까지만 만든다. 플레이어가 동굴이나 집 안에 있어도 자리 기준으로 센다.
+  - 좀비 웨이브, 밤에 생긴 좀비(햇빛 면역이라 아침에도 남음)는 이 설정과 상관없다. 아침에도 많으면 다음 후보는 해 뜰 때 플레이어와 먼 지상 좀비를 정리하거나 정기 웨이브를 밤에만 오게 하는 것이다.
+  - 사용자 서버의 config.yml에 `spawning.daylight`가 없어도 코드 기본값이 적용된다.
+  - 사용자가 1(아침에 남은 좀비)과 2(낮 정기 웨이브)는 일부러 그대로 두기로 했다. 바꾸지 않는다.
+- 2026-10-30 실시간 조정 `/apoc set [설정] [값]`을 추가했다(0.2.0 유지). 빌드와 테스트 79개 통과. 서버와 클라이언트 확인은 아직 하지 않았다.
+  - `config/LiveConfig`: 받는 키는 번들 config.yml의 끝 키(`getKeys(true)`에서 섹션 제외)뿐이라, 서버 config.yml에 없는 새 키도 넣을 수 있다. 값은 `value: <입력>`을 YAML로 읽어 숫자·true/false·[목록]을 구분한다.
+  - 바꾼 YAML로 `Settings.load`를 돌려 원래 없던 경고가 생기면 거절하고 파일을 건드리지 않는다. 통과하면 `ApocalypseCommand`가 `core.settings(...)`로 바로 적용하고 `YamlConfiguration.save`로 저장한다. 주석은 남지만 목록 표기 같은 서식은 바뀔 수 있다. 첫 변경 전 파일은 `config.yml.bak`으로 한 번만 남긴다.
+  - 이미 스폰된 좀비의 체력·속도 같은 값은 그대로이고, 스폰 상한·주기처럼 매번 읽는 값은 바로 반영된다.
+  - 인자 없이 `/apoc set`을 쓰면 `ApocalypseCommand.MAIN_SETTINGS`의 10개 설정과 현재 값을 보여 주고, 클릭하면 입력창에 명령이 들어간다.
 
 ## 코드 구조
 
@@ -91,7 +109,7 @@
 ## 다음 작업
 
 1. 서버 콘솔에서 `stop` → `build/libs/ZombieApocalypse-0.2.0.jar`를 `server/plugins`에 덮어쓰기(같은 파일 이름) → 사용자 bat로 다시 켜기. 서버 config.yml의 `ending.antenna-recipe`를 `shape: [" C ", "BRB", " C "]`, `keys: {C: IRON_CHAIN, B: BLAZE_ROD, R: REDSTONE}`로 고친다(아니면 계속 네더 석영).
-2. 접속 → `/apoc start` → [TESTING](TESTING.md) 체크리스트 확인. 이번에는 엔딩의 조립(작업대 보스바, 멈춤, 완성 지급)과 안테나 설치를 먼저 본다. `/apoc egg all`로 타입별 확인. 결과는 BUILD_REPORT와 TESTING에 기록한다.
+2. 접속 → `/apoc start` → [TESTING](TESTING.md) 체크리스트 확인. 이번에는 엔딩의 조립(작업대 보스바, 멈춤, 완성 지급)과 안테나 설치를 먼저 본다. `/apoc egg all`로 타입별 확인(새로 넣은 위치 포함). 결과는 BUILD_REPORT와 TESTING에 기록한다.
 3. 사용자에게 제안한 몰입·연출 아이디어 중 고른 것을 PLAN에 적고 단계별로 구현한다.
 4. 플레이 결과에 따라 밸런스 조정. 수치는 대부분 `server/plugins/ZombieApocalypse/config.yml`에서 바꾼다.
 5. PLAN "확인이 필요한 점" 결정. 새 후보 타입, 블러드문 주기(현재 7일), 호드 보상(현재 없음).

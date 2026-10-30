@@ -54,8 +54,10 @@ public final class ZombieFactory {
         int reduction = settings.difficulty().specialWeightPerDay() * DayMath.dayFactor(context.day(), settings.difficulty().maxDay())
                 + (context.bloodMoon() ? settings.bloodMoon().specialWeightBonus() : 0);
         boolean sky = openSky(location, settings.types().pillar().heightMax() * 2 + 1);
+        // A witch sits and cries where she is, so zombie waves never bring one.
         Map<ZombieType, Integer> weights = TypePicker.weights(settings.types(), context.day(), reduction, sprinterBonus,
-                type -> type.fits(variant) && (type != ZombieType.PILLAR || sky));
+                type -> type.fits(variant) && (type != ZombieType.PILLAR || sky)
+                        && (type != ZombieType.WITCH || context.horde() == 0));
         return TypePicker.pick(weights, ThreadLocalRandom.current());
     }
 

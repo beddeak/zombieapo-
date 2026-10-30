@@ -42,6 +42,7 @@ public final class ExtraSpawner {
         Settings.Spawning spawning = settings.spawning();
         int global = core.registry().size();
         int cap = core.crowdCap(world);
+        int daylightCap = core.daylightCap(world);
         SpawnContext context = SpawnContext.of(core.day(world), bloodMoon);
         BukkitSampler sampler = new BukkitSampler(world);
         boolean cave = world.getEnvironment() == World.Environment.NETHER;
@@ -49,6 +50,8 @@ public final class ExtraSpawner {
             if (global >= spawning.globalCap()) { return; }
             int near = core.registry().countNear(player.getLocation(), spawning.countRadius());
             int wanted = Math.min(spawning.perAttempt(), Math.min(cap - near, spawning.globalCap() - global));
+            // Spots in daylight get only a few zombies, also when the player stands in a cave or a house next to them.
+            int daylightLeft = Math.min(spawning.daylight().perAttempt(), daylightCap - near);
             Location center = player.getLocation();
             for (int index = 0; index < wanted; index++) {
                 Optional<SpawnLocator.Spot> spot = SpawnLocator.find(sampler, center.getX(), center.getY(), center.getZ(),
@@ -56,6 +59,10 @@ public final class ExtraSpawner {
                 if (spot.isEmpty()) { continue; }
                 Location location = new Location(world, spot.get().x() + 0.5, spot.get().y(), spot.get().z() + 0.5);
                 if (core.quietSurface(location)) { continue; }
+                if (core.daylight(location)) {
+                    if (daylightLeft <= 0) { continue; }
+                    daylightLeft--;
+                }
                 core.factory().spawnRandom(location, context, 0);
                 global++;
             }

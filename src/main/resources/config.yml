@@ -1,5 +1,6 @@
 # 좀비 아포칼립스 설정
 # 수정한 뒤 /apocalypse reload 로 다시 불러온다. 문법 오류가 있으면 이전 설정을 유지한다.
+# 게임 안에서 /apocalypse set <설정> <값> 으로 바로 바꿀 수도 있다(예: /apoc set spawning.extra.per-player-cap 60). 이 파일에 저장된다.
 # 잘못된 값이나 모르는 키는 서버 로그에 경고를 남기고 기본값을 쓴다.
 # 시간 단위: ticks는 1초 = 20틱, seconds는 초.
 
@@ -35,6 +36,11 @@ spawning:
     per-attempt: 5            # interval-ticks마다 플레이어 1명 주변에 추가로 스폰하는 최대 수
     min-distance: 20
     max-distance: 40
+  # 낮에 햇빛이 닿는 곳(지상, 나무 그늘 포함)은 좀비를 훨씬 적게 스폰해서 돌아다닐 수 있게 한다. 동굴, 밤, 블러드문은 그대로
+  daylight:
+    enabled: true
+    cap-multiplier: 0.25      # 낮 지상의 주변 좀비 상한 = per-player-cap(날짜 반영) × 이 값. 40이면 10
+    per-attempt: 1            # interval-ticks마다 플레이어 1명 주변 낮 지상에 추가로 스폰하는 최대 수 (0이면 안 나옴)
 
 zombie:
   follow-range: 40            # 플레이어를 쫓아오는 거리
@@ -156,6 +162,14 @@ types:
     ride-ticks: 120
     damage: 1.0
     darkness: false           # true면 실명 대신 어둠 효과
+  witch:                      # 웅크려 울다가 가까이 오거나 때리면 깨운 사람만 쫓아감 (웅크리면 절반 거리까지 안 깸, 좀비 웨이브에는 안 나옴)
+    weight: 3
+    min-day: 0
+    startle-distance: 5.0
+    speed-multiplier: 2.0
+    damage-multiplier: 2.5
+    health-multiplier: 2.0
+    rage-seconds: 30          # 이 시간이 지나거나 쫓던 사람이 쓰러지면 다시 앉아서 운다
 
 # 보스. 가중치 랜덤이 아니라 아래 규칙으로만 스폰한다.
 tank:

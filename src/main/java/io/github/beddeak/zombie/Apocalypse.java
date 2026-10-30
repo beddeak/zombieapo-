@@ -395,8 +395,24 @@ public class Apocalypse {
         return zombieBlast;
     }
 
+    /**
+     * Daytime where sky light reaches (open ground, also under tree canopies): spawning there is thinned out by
+     * {@code spawning.daylight} so players can travel. Caves, nights and blood moons are not.
+     */
+    public boolean daylight(Location location) {
+        World world = location.getWorld();
+        if (world == null || !settings.spawning().daylight().enabled() || bloodMoon(world)) { return false; }
+        return !DayMath.night(DayMath.timeOfDay(fullTime(world))) && location.getBlock().getLightFromSky() > 0;
+    }
+
+    /** {@link #crowdCap} for spots in {@link #daylight}. */
+    public int daylightCap(World world) {
+        return (int) Math.round(crowdCap(world) * settings.spawning().daylight().capMultiplier());
+    }
+
     public boolean crowded(Location location) {
-        return registry.countNear(location, settings.spawning().countRadius()) >= crowdCap(location.getWorld());
+        int cap = daylight(location) ? daylightCap(location.getWorld()) : crowdCap(location.getWorld());
+        return registry.countNear(location, settings.spawning().countRadius()) >= cap;
     }
 
     public SpawnContext context(World world) {

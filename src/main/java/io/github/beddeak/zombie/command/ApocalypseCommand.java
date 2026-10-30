@@ -2,12 +2,15 @@ package io.github.beddeak.zombie.command;
 
 import io.github.beddeak.zombie.Apocalypse;
 import io.github.beddeak.zombie.Msg;
+import io.github.beddeak.zombie.config.LiveConfig;
 import io.github.beddeak.zombie.data.WorldData;
 import io.github.beddeak.zombie.event.HordeManager;
 import io.github.beddeak.zombie.logic.DayMath;
 import io.github.beddeak.zombie.zombie.TestEgg;
 import io.github.beddeak.zombie.zombie.ZombieType;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -15,6 +18,9 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -30,10 +36,25 @@ import org.bukkit.inventory.ItemStack;
 
 public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
     public static final String PERMISSION = "zombieapoc.admin";
-    static final List<String> SUBCOMMANDS = List.of("start", "stop", "status", "stats", "reload", "spawn", "egg", "day", "bloodmoon",
-            "wave", "radio", "finale", "escape");
+    static final List<String> SUBCOMMANDS = List.of("start", "stop", "status", "stats", "reload", "set", "spawn", "egg", "day",
+            "bloodmoon", "wave", "radio", "finale", "escape");
     private static final int MAX_SPAWN = 50;
     private static final int MAX_EGGS = 64;
+    /** Settings {@code set} lists first, with what they mean; every other key is reachable with tab completion. */
+    private static final Map<String, String> MAIN_SETTINGS = new LinkedHashMap<>();
+
+    static {
+        MAIN_SETTINGS.put("spawning.extra.per-player-cap", "주변 좀비 상한");
+        MAIN_SETTINGS.put("spawning.extra.per-attempt", "추가 스폰 1회 수");
+        MAIN_SETTINGS.put("spawning.extra.interval-ticks", "추가 스폰 주기(틱)");
+        MAIN_SETTINGS.put("spawning.extra.global-cap", "서버 전체 상한");
+        MAIN_SETTINGS.put("spawning.daylight.cap-multiplier", "낮 지상 상한 배율");
+        MAIN_SETTINGS.put("spawning.daylight.per-attempt", "낮 지상 1회 수");
+        MAIN_SETTINGS.put("spawning.monster-spawn-limit", "바닐라 몬스터 상한");
+        MAIN_SETTINGS.put("blood-moon.cap-multiplier", "블러드문 상한 배율");
+        MAIN_SETTINGS.put("horde.base-size", "웨이브 1인당 수");
+        MAIN_SETTINGS.put("difficulty.health-per-day", "하루당 체력 증가");
+    }
 
     /** Re-reads config.yml and returns its warnings; throws when the file cannot be parsed. */
     @FunctionalInterface public interface Reloader {
@@ -42,11 +63,13 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
 
     private final Apocalypse core;
     private final Reloader reloader;
+    private final LiveConfig live;
     private final Logger logger;
 
-    public ApocalypseCommand(Apocalypse core, Reloader reloader, Logger logger) {
+    public ApocalypseCommand(Apocalypse core, Reloader reloader, LiveConfig live, Logger logger) {
         this.core = core;
         this.reloader = reloader;
+        this.live = live;
         this.logger = logger;
     }
 
@@ -64,6 +87,7 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
             case "reload" -> {
                 if (args.length == 1) { reload(sender); } else { usage(sender, label); }
             }
+            case "set" -> set(sender, args, label);
             case "spawn" -> spawn(sender, args, label);
             case "egg" -> egg(sender, args, label);
             case "day" -> day(sender, args, label);
@@ -160,6 +184,46 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
         } catch (Exception exception) {
             logger.log(Level.WARNING, "ZombieApocalypse config reload failed; keeping previous settings", exception);
             sender.sendMessage(message("설정을 불러오지 못해 이전 설정을 유지합니다. 서버 로그를 확인하세요."));
+        }
+    }
+
+    /**
+     * {@code set [key] [value]}: changes a config.yml value while playing. It is checked like a reload, applies at once
+     * and is saved. Without a value it shows the current one; without a key it lists the main spawn settings.
+     */
+    private void set(CommandSender sender, String[] args, String label) {
+        try {
+            if (args.length < 2) {
+                sender.sendMessage(message("실시간 조정: /" + label + " set <설정> <값> — 바로 적용되고 config.yml에 저장됩니다. 탭을 누르면 모든 설정이 나옵니다."));
+                for (Map.Entry<String, String> entry : MAIN_SETTINGS.entrySet()) {
+                    String key = entry.getKey();
+                    sender.sendMessage(Component.text("  " + entry.getValue() + "  ", NamedTextColor.GRAY)
+                            .append(Component.text(key + " = " + live.value(key), NamedTextColor.WHITE))
+                            .clickEvent(ClickEvent.suggestCommand("/" + label + " set " + key + " "))
+                            .hoverEvent(HoverEvent.showText(Component.text("클릭하면 입력창에 넣습니다"))));
+                }
+                return;
+            }
+            String key = args[1];
+            if (!live.known(key)) {
+                sender.sendMessage(message("모르는 설정입니다: " + key + ". /" + label + " set 뒤에서 탭을 누르면 목록이 나옵니다."));
+                return;
+            }
+            if (args.length == 2) {
+                sender.sendMessage(message(key + " = " + live.value(key)));
+                return;
+            }
+            LiveConfig.Change change = live.set(key, String.join(" ", Arrays.copyOfRange(args, 2, args.length)));
+            if (change.problem() != null) {
+                sender.sendMessage(message("바꾸지 않았습니다. " + change.problem()));
+                return;
+            }
+            core.settings(change.settings());
+            logger.info(sender.getName() + " set " + key + ": " + change.previous() + " -> " + change.value());
+            sender.sendMessage(message(key + ": " + change.previous() + " → " + change.value() + " (바로 적용, config.yml에 저장)"));
+        } catch (Exception exception) {
+            logger.log(Level.WARNING, "ZombieApocalypse could not change config.yml", exception);
+            sender.sendMessage(message("config.yml을 읽거나 쓰지 못했습니다. 서버 로그를 확인하세요."));
         }
     }
 
@@ -410,6 +474,7 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
             options = switch (sub) {
                 case "start" -> concat(List.of("now", "60", "300"), worldNames());
                 case "stop", "stats" -> worldNames();
+                case "set" -> live.complete(args[1]);
                 case "spawn" -> typeNames();
                 case "egg" -> eggNames();
                 case "day" -> List.of("set");
@@ -423,6 +488,7 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
             options = switch (sub) {
                 case "radio" -> args[1].equalsIgnoreCase("give")
                         ? Bukkit.getOnlinePlayers().stream().map(Player::getName).toList() : worldNames();
+                case "set" -> valueHints(args[1]);
                 case "spawn", "egg" -> List.of("1", "5", "10");
                 case "bloodmoon", "wave", "horde", "finale", "escape" -> worldNames();
                 default -> List.of();
@@ -434,6 +500,17 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
         }
         String prefix = args[args.length - 1].toLowerCase(Locale.ROOT);
         return options.stream().filter(option -> option.toLowerCase(Locale.ROOT).startsWith(prefix)).toList();
+    }
+
+    /** The current value of a setting as the first suggestion, or true/false for switches. */
+    private List<String> valueHints(String key) {
+        if (!live.known(key)) { return List.of(); }
+        try {
+            Object value = live.value(key);
+            return value instanceof Boolean ? List.of("true", "false") : List.of(String.valueOf(value));
+        } catch (Exception exception) {
+            return List.of();
+        }
     }
 
     private static List<String> typeNames() {

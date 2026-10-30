@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import io.github.beddeak.zombie.Apocalypse;
+import io.github.beddeak.zombie.config.LiveConfig;
+import io.github.beddeak.zombie.config.Settings;
 import java.io.IOException;
 import java.util.List;
 import java.util.logging.Level;
@@ -16,14 +18,15 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class ApocalypseCommandTest {
-    private static final String USAGE = "사용법: /apoc <start|stop|status|stats|reload|spawn|egg|day|bloodmoon|wave|radio|finale|escape>";
+    private static final String USAGE = "사용법: /apoc <start|stop|status|stats|reload|set|spawn|egg|day|bloodmoon|wave|radio|finale|escape>";
     private final Apocalypse core = mock(Apocalypse.class);
     private final ApocalypseCommand.Reloader reloader = mock(ApocalypseCommand.Reloader.class);
+    private final LiveConfig live = mock(LiveConfig.class);
     private final Logger logger = mock(Logger.class);
     private final Command command = mock(Command.class);
     private final Player player = mock(Player.class);
     private final World world = mock(World.class);
-    private final ApocalypseCommand executor = new ApocalypseCommand(core, reloader, logger);
+    private final ApocalypseCommand executor = new ApocalypseCommand(core, reloader, live, logger);
 
     private void admin() {
         when(player.hasPermission(ApocalypseCommand.PERMISSION)).thenReturn(true);
@@ -31,11 +34,11 @@ class ApocalypseCommandTest {
         when(world.getName()).thenReturn("world");
     }
 
-    @ParameterizedTest @ValueSource(strings = {"start", "stop", "status", "stats", "reload", "spawn", "egg", "day", "bloodmoon", "wave", "radio", "finale", "escape"})
+    @ParameterizedTest @ValueSource(strings = {"start", "stop", "status", "stats", "reload", "set", "spawn", "egg", "day", "bloodmoon", "wave", "radio", "finale", "escape"})
     void ordinaryPlayersCannotUseAnySubcommand(String subcommand) throws Exception {
         executor.onCommand(player, command, "apocalypse", new String[]{subcommand});
         verify(player).sendMessage(ApocalypseCommand.message("권한이 없습니다."));
-        verifyNoInteractions(core, reloader);
+        verifyNoInteractions(core, reloader, live);
     }
 
     @Test void adminWithoutOrWithUnknownSubcommandSeesUsage() {
@@ -139,7 +142,7 @@ class ApocalypseCommandTest {
         assertTrue(executor.onTabComplete(player, command, "apoc", new String[]{""}).isEmpty());
         admin();
         assertEquals(List.of("reload", "radio"), executor.onTabComplete(player, command, "apoc", new String[]{"r"}));
-        assertEquals(List.of("start", "stop", "status", "stats", "spawn"), executor.onTabComplete(player, command, "apoc", new String[]{"s"}));
+        assertEquals(List.of("start", "stop", "status", "stats", "set", "spawn"), executor.onTabComplete(player, command, "apoc", new String[]{"s"}));
         assertTrue(executor.onTabComplete(player, command, "apoc", new String[]{"x"}).isEmpty());
         assertTrue(executor.onTabComplete(player, command, "apoc", new String[]{"reload", ""}).isEmpty());
         assertEquals(List.of("start", "stop"), executor.onTabComplete(player, command, "apoc", new String[]{"wave", ""}));
@@ -150,6 +153,35 @@ class ApocalypseCommandTest {
         List<String> eggs = executor.onTabComplete(player, command, "apoc", new String[]{"egg", ""});
         assertTrue(eggs.contains("tank") && eggs.contains("jockey"));
         assertFalse(eggs.contains("player"));
+    }
+
+    @Test void setAppliesCheckedChangesAndRefusesTheRest() throws Exception {
+        admin();
+        String key = "spawning.extra.per-player-cap";
+        Settings next = Settings.defaults();
+        when(live.known(key)).thenReturn(true);
+        when(live.set(key, "60")).thenReturn(new LiveConfig.Change(next, 40, 60, null));
+        when(live.set(key, "많이")).thenReturn(new LiveConfig.Change(null, 40, "많이", key + ": 숫자가 아닙니다."));
+        executor.onCommand(player, command, "apoc", new String[]{"set", key, "60"});
+        executor.onCommand(player, command, "apoc", new String[]{"set", key, "많이"});
+        executor.onCommand(player, command, "apoc", new String[]{"set", "nope", "1"});
+        verify(core).settings(next);
+        verify(player).sendMessage(ApocalypseCommand.message(key + ": 40 → 60 (바로 적용, config.yml에 저장)"));
+        verify(player).sendMessage(ApocalypseCommand.message("바꾸지 않았습니다. " + key + ": 숫자가 아닙니다."));
+        verify(player).sendMessage(ApocalypseCommand.message("모르는 설정입니다: nope. /apoc set 뒤에서 탭을 누르면 목록이 나옵니다."));
+        verify(live, never()).set(eq("nope"), anyString());
+    }
+
+    @Test void setTabsCompleteKeysAndSuggestTheCurrentValue() throws Exception {
+        admin();
+        when(live.complete("sp")).thenReturn(List.of("spawning."));
+        when(live.known("spawning.daylight.enabled")).thenReturn(true);
+        when(live.value("spawning.daylight.enabled")).thenReturn(true);
+        when(live.known("spawning.extra.per-attempt")).thenReturn(true);
+        when(live.value("spawning.extra.per-attempt")).thenReturn(5);
+        assertEquals(List.of("spawning."), executor.onTabComplete(player, command, "apoc", new String[]{"set", "sp"}));
+        assertEquals(List.of("true", "false"), executor.onTabComplete(player, command, "apoc", new String[]{"set", "spawning.daylight.enabled", ""}));
+        assertEquals(List.of("5"), executor.onTabComplete(player, command, "apoc", new String[]{"set", "spawning.extra.per-attempt", ""}));
     }
 
     @Test void eggRejectsUnknownTypesPlayerZombiesAndBadCounts() {

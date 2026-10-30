@@ -13,10 +13,12 @@ public final class Keys {
     public static final NamespacedKey OWNER = key("owner");
     public static final NamespacedKey COOLDOWN = key("cooldown");
     public static final NamespacedKey COOLDOWN_2 = key("cooldown2");
-    /** Game time of a type-specific event (ninja last seen, thief flee end). */
+    /** Game time of a type-specific event (ninja last seen, thief flee end, witch rage end). */
     public static final NamespacedKey MARK = key("mark");
     /** UUID of the player a thief robbed. */
     public static final NamespacedKey STOLEN_FROM = key("stolen_from");
+    /** UUID of the player a raging witch chases. */
+    public static final NamespacedKey VICTIM = key("victim");
     public static final NamespacedKey PHASE_TWO = key("phase_two");
     /** Kind of a helper entity (hook, rock, spit, acid, radio display). */
     public static final NamespacedKey HELPER = key("helper");

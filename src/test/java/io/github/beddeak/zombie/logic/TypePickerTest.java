@@ -42,6 +42,7 @@ class TypePickerTest {
         Map<ZombieType, Integer> drowned = TypePicker.weights(types, 30, 0, 0, type -> type.fits(EntityType.DROWNED));
         assertFalse(drowned.containsKey(ZombieType.PILLAR));
         assertFalse(drowned.containsKey(ZombieType.JOCKEY));
+        assertFalse(drowned.containsKey(ZombieType.WITCH));
         assertTrue(drowned.containsKey(ZombieType.GRABBER));
     }
 

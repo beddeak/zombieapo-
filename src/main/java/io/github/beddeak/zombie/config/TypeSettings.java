@@ -25,7 +25,8 @@ public record TypeSettings(
         Vampire vampire,
         Thief thief,
         Necromancer necromancer,
-        Jockey jockey) {
+        Jockey jockey,
+        Witch witch) {
 
     public record Spawn(int weight, int minDay) {}
     public record Sprinter(double speedMultiplier) {}
@@ -48,6 +49,8 @@ public record TypeSettings(
     public record Thief(int fleeSeconds) {}
     public record Necromancer(double range, int cooldownTicks, int raiseMin, int raiseMax, int maxAlive) {}
     public record Jockey(double leapDistance, int cooldownTicks, int rideTicks, double damage, boolean darkness) {}
+    public record Witch(double startleDistance, double speedMultiplier, double damageMultiplier, double healthMultiplier,
+                        int rageSeconds) {}
 
     private static final int MAX_TICKS = 72_000;
 
@@ -130,6 +133,10 @@ public record TypeSettings(
         c = spawn(types, ZombieType.JOCKEY, 5, 0, spawns);
         Jockey jockey = new Jockey(c.number("leap-distance", 3, 1, 16), c.integer("cooldown-ticks", 100, 1, MAX_TICKS),
                 c.integer("ride-ticks", 120, 1, MAX_TICKS), c.number("damage", 1, 0, 100), c.bool("darkness", false));
+        c = spawn(types, ZombieType.WITCH, 3, 0, spawns);
+        Witch witch = new Witch(c.number("startle-distance", 5, 1, 32), c.number("speed-multiplier", 2.0, 0.1, 5),
+                c.number("damage-multiplier", 2.5, 0, 20), c.number("health-multiplier", 2.0, 0.1, 20),
+                c.integer("rage-seconds", 30, 1, 3600));
 
         int total = spawns.values().stream().mapToInt(Spawn::weight).sum();
         if (total <= 0) {
@@ -137,7 +144,7 @@ public record TypeSettings(
             spawns = defaultSpawns();
         }
         return new TypeSettings(Collections.unmodifiableMap(spawns), sprinter, boomer, bomber, thrower, toxic, frost,
-                jumper, ninja, grabber, multiplier, screamer, healer, spitter, pillar, vampire, thief, necromancer, jockey);
+                jumper, ninja, grabber, multiplier, screamer, healer, spitter, pillar, vampire, thief, necromancer, jockey, witch);
     }
 
     private static ConfigReader spawn(ConfigReader types, ZombieType type, int weight, int minDay,
