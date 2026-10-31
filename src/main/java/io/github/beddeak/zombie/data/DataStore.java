@@ -23,7 +23,6 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 
-/** data.yml: everything that must survive a restart. World names are keys, so '|' is used as the path separator. */
 public final class DataStore {
     public record PendingMode(GameMode mode, String world, BlockPos pos) {}
 
@@ -41,17 +40,11 @@ public final class DataStore {
         this.logger = logger;
     }
 
-    /** Active worlds by name. */
     public Map<String, WorldData> worlds() { return worlds; }
-    /** Radio block per world name. Kept across stop/start so a placed radio keeps working. */
     public Map<String, BlockPos> radios() { return radios; }
-    /** Antenna block per world name, kept like the radio. */
     public Map<String, BlockPos> antennas() { return antennas; }
-    /** Owner UUID to the UUID of their current player zombie. */
     public Map<UUID, UUID> playerZombies() { return playerZombies; }
-    /** Items stolen by thieves that could not be returned yet, serialized with {@code ItemStack#serializeAsBytes}. */
     public Map<UUID, List<String>> pendingItems() { return pendingItems; }
-    /** Escaped spectators whose game mode must be restored on their next join. */
     public Map<UUID, PendingMode> pendingModes() { return pendingModes; }
 
     public void load() {
@@ -152,10 +145,6 @@ public final class DataStore {
         }
     }
 
-    /**
-     * Moves the temporary file over data.yml. On Windows the target can be briefly held by another process (virus
-     * scanners right after a write), so a few retries are made before copying over the file in place.
-     */
     private static void replace(Path temporary, Path target) throws IOException {
         for (int attempt = 0; attempt < 5; attempt++) {
             try {

@@ -19,7 +19,6 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
-/** Test spawn eggs: right-clicking spawns the custom zombie; the vanilla egg behaviour is always blocked. */
 public final class EggListener implements Listener {
     private final Apocalypse core;
 

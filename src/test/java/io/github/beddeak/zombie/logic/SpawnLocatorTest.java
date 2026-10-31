@@ -7,7 +7,6 @@ import java.util.Random;
 import org.junit.jupiter.api.Test;
 
 class SpawnLocatorTest {
-    /** Flat ground at y=64 everywhere, an underground cave floor at y=20, water at x >= 100, unloaded at x < -50. */
     private static final class World implements SpawnLocator.Sampler {
         @Override public boolean loaded(int x, int z) { return x >= -50; }
 

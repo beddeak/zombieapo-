@@ -16,10 +16,6 @@ import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
-/**
- * Blood moon nights. The natural one is derived from the day number and time, so nothing needs saving; forced
- * starts and stops last until the next morning and are kept in memory only.
- */
 public final class BloodMoonManager {
     private static final class State {
         boolean active;

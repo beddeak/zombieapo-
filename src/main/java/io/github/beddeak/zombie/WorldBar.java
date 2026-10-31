@@ -9,7 +9,6 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
-/** A boss bar shown to an explicit set of players; {@link #sync} adds and removes viewers. */
 public final class WorldBar {
     private final BossBar bar;
     private final Set<UUID> viewers = new HashSet<>();

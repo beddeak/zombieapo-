@@ -22,10 +22,6 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
-/**
- * Blitzcrank style grab: the zombie stops and raises its arms, then throws a hook in a straight line at where the
- * player was when the wind-up ended. Blocks stop the hook; the first player it touches is yanked to the zombie.
- */
 final class GrabberAbility implements Ability {
     private static final int MAX_PULL_TICKS = 12;
     private final Apocalypse core;

@@ -11,7 +11,6 @@ import org.bukkit.entity.Projectile;
 import org.bukkit.entity.Zombie;
 import org.bukkit.event.entity.ProjectileHitEvent;
 
-/** Maps each zombie type to its behaviour and runs the 10-tick ability loop. */
 public final class Abilities {
     private static final Ability NONE = new Ability() {};
     private static final int PIGLIN_ANGER = 1_000_000;
@@ -62,7 +61,6 @@ public final class Abilities {
         }
     }
 
-    /** Zombified piglins attack first while the apocalypse runs. */
     private void provoke(PigZombie piglin) {
         if (piglin.getAnger() < PIGLIN_ANGER / 2) {
             piglin.setAngry(true);
@@ -74,7 +72,6 @@ public final class Abilities {
         }
     }
 
-    /** A projectile owned by this plugin landed; returns true when it was ours. */
     public boolean projectileLanded(Projectile projectile, ProjectileHitEvent event) {
         String kind = Tags.helper(projectile);
         if (Tags.SPIT.equals(kind)) {

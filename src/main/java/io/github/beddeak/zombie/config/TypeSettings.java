@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
 
-/** Weights and per-type options under {@code types:}. */
 public record TypeSettings(
         Map<ZombieType, Spawn> spawns,
         Sprinter sprinter,
@@ -99,7 +98,7 @@ public record TypeSettings(
                     multiplier.healthPerGeneration(), multiplier.nearbyCap(), multiplier.nearbyRadius());
         }
         c = spawn(types, ZombieType.SCREAMER, 5, 0, spawns);
-        Screamer screamer = new Screamer(c.number("detect-distance", 16, 1, 64), c.number("radius", 24, 1, 128),
+        Screamer screamer = new Screamer(c.number("detect-distance", 10, 1, 64), c.number("radius", 12, 1, 128),
                 c.integer("cooldown-ticks", 200, 1, MAX_TICKS));
         c = spawn(types, ZombieType.HEALER, 5, 0, spawns);
         Healer healer = new Healer(c.number("radius", 8, 1, 64), c.number("amount", 4, 0, 1000),
@@ -133,10 +132,10 @@ public record TypeSettings(
         c = spawn(types, ZombieType.JOCKEY, 5, 0, spawns);
         Jockey jockey = new Jockey(c.number("leap-distance", 3, 1, 16), c.integer("cooldown-ticks", 100, 1, MAX_TICKS),
                 c.integer("ride-ticks", 120, 1, MAX_TICKS), c.number("damage", 1, 0, 100), c.bool("darkness", false));
-        c = spawn(types, ZombieType.WITCH, 3, 0, spawns);
-        Witch witch = new Witch(c.number("startle-distance", 5, 1, 32), c.number("speed-multiplier", 2.0, 0.1, 5),
-                c.number("damage-multiplier", 2.5, 0, 20), c.number("health-multiplier", 2.0, 0.1, 20),
-                c.integer("rage-seconds", 30, 1, 3600));
+        c = spawn(types, ZombieType.WITCH, 2, 0, spawns);
+        Witch witch = new Witch(c.number("startle-distance", 4, 1, 32), c.number("speed-multiplier", 1.5, 0.1, 5),
+                c.number("damage-multiplier", 1.8, 0, 20), c.number("health-multiplier", 1.5, 0.1, 20),
+                c.integer("rage-seconds", 15, 1, 3600));
 
         int total = spawns.values().stream().mapToInt(Spawn::weight).sum();
         if (total <= 0) {

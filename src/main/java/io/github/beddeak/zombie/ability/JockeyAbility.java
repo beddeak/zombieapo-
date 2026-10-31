@@ -16,10 +16,6 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
-/**
- * A baby zombie that jumps onto a player's head, blinds them and keeps biting. It lets go when another player hits
- * it, when the rider sneaks three times quickly, or after a few seconds.
- */
 public final class JockeyAbility implements Ability {
     private final Apocalypse core;
 
@@ -46,14 +42,12 @@ public final class JockeyAbility implements Ability {
         target.sendActionBar(Msg.alert("자키가 머리에 올라탔습니다! 웅크리기를 빠르게 3번 눌러 떨쳐내세요."));
     }
 
-    /** A sneak press by a player; three in a row throw off their rider. */
     public void sneaked(Player player) {
         core.effects().of(Ride.class).filter(ride -> ride.player.equals(player)).findFirst().ifPresent(ride -> {
             if (ride.shake.press(player.getWorld().getGameTime())) { core.effects().end(ride); }
         });
     }
 
-    /** Another player hit this jockey: it lets go. */
     public void struck(Zombie zombie, Player attacker) {
         core.effects().of(Ride.class).filter(ride -> ride.jockey.equals(zombie) && !ride.player.equals(attacker))
                 .findFirst().ifPresent(ride -> core.effects().end(ride));

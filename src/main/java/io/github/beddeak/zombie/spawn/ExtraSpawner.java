@@ -12,7 +12,6 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
-/** Keeps zombies around players regardless of light level, within per-player and server caps. */
 public final class ExtraSpawner {
     private final Apocalypse core;
     private final Map<String, Long> nextRun = new HashMap<>();
@@ -50,7 +49,6 @@ public final class ExtraSpawner {
             if (global >= spawning.globalCap()) { return; }
             int near = core.registry().countNear(player.getLocation(), spawning.countRadius());
             int wanted = Math.min(spawning.perAttempt(), Math.min(cap - near, spawning.globalCap() - global));
-            // Spots in daylight get only a few zombies, also when the player stands in a cave or a house next to them.
             int daylightLeft = Math.min(spawning.daylight().perAttempt(), daylightCap - near);
             Location center = player.getLocation();
             for (int index = 0; index < wanted; index++) {

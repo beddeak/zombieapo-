@@ -12,7 +12,6 @@ import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Zombie;
 
-/** Custom zombies currently loaded in any world, kept in sync by add/remove-from-world events. */
 public final class ZombieRegistry {
     private final Map<UUID, Zombie> zombies = new HashMap<>();
     private final Map<UUID, ZombieType> types = new HashMap<>();
@@ -47,7 +46,6 @@ public final class ZombieRegistry {
         return type != null ? type : Tags.type(zombie);
     }
 
-    /** Snapshot of live (not dead) tracked zombies, safe to iterate while spawning or removing. */
     public List<Zombie> snapshot() {
         List<Zombie> result = new ArrayList<>(zombies.size());
         for (Zombie zombie : zombies.values()) {

@@ -8,7 +8,6 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 
-/** Spawn eggs for trying out one zombie type. They spawn the custom zombie instead of a vanilla one. */
 public final class TestEgg {
     private TestEgg() {}
 
@@ -24,7 +23,6 @@ public final class TestEgg {
         return item;
     }
 
-    /** The zombie type of a test egg, or null for any other item. */
     public static ZombieType type(ItemStack item) {
         if (item == null || item.isEmpty()) { return null; }
         String value = item.getPersistentDataContainer().get(Keys.EGG, PersistentDataType.STRING);

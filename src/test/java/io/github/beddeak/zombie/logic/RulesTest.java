@@ -46,17 +46,12 @@ class RulesTest {
     @Test void thiefAlwaysStealsSomethingWhenPossible() {
         Random random = new Random(11);
         java.util.Set<Integer> weapons = java.util.Set.of(0, 1, 20);
-        // ordinary hotbar item (slot 5) wins over everything else
         assertEquals(5, AbilityRules.theftSlot(36, 0, slot -> slot == 0 || slot == 5 || slot == 30, weapons::contains, random));
-        // then the main inventory
         assertEquals(30, AbilityRules.theftSlot(36, 0, slot -> slot == 0 || slot == 1 || slot == 30, weapons::contains, random));
-        // then the held item if it is not a weapon
         assertEquals(3, AbilityRules.theftSlot(36, 3, slot -> slot == 1 || slot == 3, weapons::contains, random));
-        // only weapons left: they are taken too, hotbar before inventory before the held weapon
         assertEquals(1, AbilityRules.theftSlot(36, 0, slot -> slot == 0 || slot == 1 || slot == 20, weapons::contains, random));
         assertEquals(20, AbilityRules.theftSlot(36, 0, slot -> slot == 0 || slot == 20, weapons::contains, random));
         assertEquals(0, AbilityRules.theftSlot(36, 0, slot -> slot == 0, weapons::contains, random));
-        // empty inventory, or only the radio (not "present"): nothing to steal
         assertEquals(-1, AbilityRules.theftSlot(36, 0, slot -> false, weapons::contains, random));
     }
 

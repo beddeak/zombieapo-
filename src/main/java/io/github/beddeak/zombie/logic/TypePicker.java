@@ -7,15 +7,9 @@ import java.util.Map;
 import java.util.Random;
 import java.util.function.Predicate;
 
-/** Weighted random choice of zombie types. */
 public final class TypePicker {
     private TypePicker() {}
 
-    /**
-     * Effective weights for one spawn. Types below their start day or that do not fit the body are left out,
-     * {@code defaultReduction} is taken from DEFAULT (days passed, blood moon) and {@code sprinterBonus} is added to
-     * SPRINTER (hordes).
-     */
     public static Map<ZombieType, Integer> weights(TypeSettings types, int day, int defaultReduction, int sprinterBonus,
                                                    Predicate<ZombieType> fits) {
         Map<ZombieType, Integer> weights = new EnumMap<>(ZombieType.class);

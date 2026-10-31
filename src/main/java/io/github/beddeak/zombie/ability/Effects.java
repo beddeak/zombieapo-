@@ -7,18 +7,12 @@ import java.util.logging.Logger;
 import java.util.stream.Stream;
 import org.bukkit.World;
 
-/**
- * Short-lived per-tick behaviours (fuses, hooks, rides, rising corpses). Every effect gets exactly one
- * {@link Effect#end()} call: when it finishes, when its world stops, or when the plugin disables.
- */
 public final class Effects {
     public interface Effect {
         World world();
 
-        /** Advances one tick; returns false when finished. */
         boolean tick();
 
-        /** Cleans up anything the effect created or changed. Must be safe if the entities are gone. */
         void end();
     }
 

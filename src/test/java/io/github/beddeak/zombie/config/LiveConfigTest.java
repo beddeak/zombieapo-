@@ -20,7 +20,6 @@ class LiveConfigTest {
         }
     }
 
-    /** A live config over config.yml in the temp folder, holding {@code text} (no file when null). */
     private LiveConfig live(String text) throws Exception {
         File file = folder.resolve("config.yml").toFile();
         if (text != null) { Files.writeString(file.toPath(), text, StandardCharsets.UTF_8); }

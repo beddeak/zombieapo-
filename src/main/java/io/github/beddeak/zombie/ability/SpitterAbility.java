@@ -18,7 +18,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-/** Spits an acid glob from range; where it lands an acid puddle poisons and slows players. */
 final class SpitterAbility implements Ability {
     private final Apocalypse core;
 
@@ -42,7 +41,6 @@ final class SpitterAbility implements Ability {
         zombie.getWorld().playSound(from, Sound.ENTITY_LLAMA_SPIT, 1.5f, 0.7f);
     }
 
-    /** Handles a landed spit glob. */
     void landed(Projectile projectile, ProjectileHitEvent event) {
         projectile.remove();
         if (!core.active(projectile.getWorld())) { return; }

@@ -12,14 +12,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 
-/**
- * Changes one config.yml value while the server runs ({@code /apocalypse set}). The change is checked like a reload:
- * a value that would fall back to the default is refused and nothing is written. Only keys of the bundled config can
- * be set, so a server config without newer keys can still get them. The first change keeps a copy of the original
- * file as {@code config.yml.bak}.
- */
 public final class LiveConfig {
-    /** Result of {@link #set}: the settings to apply, or why nothing changed. */
     public record Change(Settings settings, Object previous, Object value, String problem) {}
 
     private final File file;
@@ -36,7 +29,6 @@ public final class LiveConfig {
         this.keys = List.copyOf(leaves);
     }
 
-    /** Every key that can be set, in config.yml order. */
     public List<String> keys() {
         return keys;
     }
@@ -45,13 +37,11 @@ public final class LiveConfig {
         return keys.contains(key);
     }
 
-    /** The value in effect: config.yml's, or the default when the file does not have the key. */
     public Object value(String key) throws IOException, InvalidConfigurationException {
         YamlConfiguration current = current();
         return current.contains(key) ? current.get(key) : defaults.get(key);
     }
 
-    /** Sets {@code key} to {@code text} read as YAML, checks it and saves config.yml when it is valid. */
     public Change set(String key, String text) throws IOException, InvalidConfigurationException {
         YamlConfiguration current = current();
         Object previous = current.contains(key) ? current.get(key) : defaults.get(key);
@@ -68,7 +58,6 @@ public final class LiveConfig {
         return new Change(loaded.settings(), previous, value, null);
     }
 
-    /** Tab completion one level at a time: {@code sp} gives {@code spawning.}, which then gives its children. */
     public List<String> complete(String typed) {
         String prefix = typed.toLowerCase(Locale.ROOT);
         Set<String> options = new LinkedHashSet<>();
@@ -80,7 +69,6 @@ public final class LiveConfig {
         return List.copyOf(options);
     }
 
-    /** Reads a typed value the way config.yml would: numbers, true/false and [lists]; anything else stays text. */
     static Object parse(String text) {
         YamlConfiguration yaml = new YamlConfiguration();
         try {

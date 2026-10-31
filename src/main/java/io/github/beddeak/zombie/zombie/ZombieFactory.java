@@ -24,7 +24,6 @@ import org.bukkit.entity.PigZombie;
 import org.bukkit.entity.Zombie;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 
-/** Creates custom zombies and turns natural zombies into custom ones. */
 public final class ZombieFactory {
     private static final int PIGLIN_ANGER = 1_000_000;
     private final Apocalypse core;
@@ -33,7 +32,6 @@ public final class ZombieFactory {
         this.core = core;
     }
 
-    /** Drowned in water, husk in deserts, zombie elsewhere. */
     public Class<? extends Zombie> variantFor(Location location) {
         Block block = location.getBlock();
         if (block.getType() == Material.WATER
@@ -54,7 +52,6 @@ public final class ZombieFactory {
         int reduction = settings.difficulty().specialWeightPerDay() * DayMath.dayFactor(context.day(), settings.difficulty().maxDay())
                 + (context.bloodMoon() ? settings.bloodMoon().specialWeightBonus() : 0);
         boolean sky = openSky(location, settings.types().pillar().heightMax() * 2 + 1);
-        // A witch sits and cries where she is, so zombie waves never bring one.
         Map<ZombieType, Integer> weights = TypePicker.weights(settings.types(), context.day(), reduction, sprinterBonus,
                 type -> type.fits(variant) && (type != ZombieType.PILLAR || sky)
                         && (type != ZombieType.WITCH || context.horde() == 0));
@@ -81,7 +78,6 @@ public final class ZombieFactory {
         });
     }
 
-    /** Tags the zombie with a type and applies difficulty, blood moon and the type's own setup. */
     public void apply(Zombie zombie, ZombieType type, SpawnContext context) {
         Tags.type(zombie, type);
         if (context.horde() != 0) {
@@ -93,7 +89,6 @@ public final class ZombieFactory {
         }
         if (context.owner() != null) { Tags.uuid(zombie, Keys.OWNER, context.owner()); }
         zombie.setShouldBurnInDay(false);
-        // Picked-up gear (a dead player's sword and armor) would vanish with the zombie on a self-destruct or stop.
         zombie.setCanPickupItems(false);
 
         Settings settings = core.settings();
@@ -119,7 +114,6 @@ public final class ZombieFactory {
         if (type == ZombieType.PILLAR) { core.runLater(1, () -> buildTower(zombie, context)); }
     }
 
-    /** Whether nothing blocks the sky above the location for at least {@code height} blocks. */
     public boolean openSky(Location location, int height) {
         World world = location.getWorld();
         int y = location.getBlockY();

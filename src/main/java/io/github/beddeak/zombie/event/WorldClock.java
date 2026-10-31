@@ -12,7 +12,6 @@ import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
-/** Once a second per active world: day titles, the regular horde schedule and the every-N-days tank. */
 public final class WorldClock {
     private final Apocalypse core;
 
@@ -42,8 +41,6 @@ public final class WorldClock {
                     && (day > data.hordeDay || timeOfDay >= data.hordeTime);
             if (due) {
                 if (over || core.hordes().continuous(world)) {
-                    // Assembly, finale and escape already bring endless waves, and after the ending nothing should
-                    // interrupt it; today's regular wave is skipped instead of piling up behind them.
                     data.hordeDone = true;
                     changed = true;
                 } else if (core.hordes().start(world, HordeManager.Kind.REGULAR)) {

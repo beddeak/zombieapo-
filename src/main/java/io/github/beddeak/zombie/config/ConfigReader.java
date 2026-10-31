@@ -9,10 +9,6 @@ import java.util.Map;
 import java.util.Set;
 import org.bukkit.configuration.ConfigurationSection;
 
-/**
- * Reads one config section with validation. Invalid or out-of-range values fall back to the default and
- * add a warning, and keys that were never read are reported as unknown by {@link #finish()}.
- */
 public final class ConfigReader {
     private final ConfigurationSection section;
     private final String path;
@@ -105,7 +101,6 @@ public final class ConfigReader {
         return List.copyOf(result);
     }
 
-    /** A list of strings kept exactly as written (spaces matter, e.g. crafting shape rows); null when absent. */
     public List<String> lines(String key) {
         Object value = raw(key);
         if (value == null) { return null; }
@@ -118,7 +113,6 @@ public final class ConfigReader {
         return List.copyOf(result);
     }
 
-    /** A sub-section read as text values, e.g. the ingredient keys of a crafting shape; null when absent. */
     public Map<String, String> entries(String key) {
         Object value = raw(key);
         if (value == null) { return null; }
@@ -150,7 +144,6 @@ public final class ConfigReader {
         return List.copyOf(result);
     }
 
-    /** Reads {@code [min, max]} (or a single number meaning both ends) and returns {@code {min, max}}. */
     public int[] range(String key, int fallbackMin, int fallbackMax, int min, int max) {
         Object value = raw(key);
         int[] fallback = {fallbackMin, fallbackMax};
@@ -177,7 +170,6 @@ public final class ConfigReader {
         return result;
     }
 
-    /** Reports keys that exist in the file but were never read, for this section and every child. */
     public void finish() {
         if (section != null) {
             for (String key : section.getKeys(false)) {

@@ -2,7 +2,6 @@ package io.github.beddeak.zombie.zombie;
 
 import java.util.UUID;
 
-/** World conditions at the moment a custom zombie is created. */
 public record SpawnContext(int day, boolean bloodMoon, int horde, int generation, UUID owner) {
     public static SpawnContext of(int day, boolean bloodMoon) {
         return new SpawnContext(day, bloodMoon, 0, 1, null);

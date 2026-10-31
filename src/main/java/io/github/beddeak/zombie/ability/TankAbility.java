@@ -36,12 +36,10 @@ import org.bukkit.util.Vector;
 import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 
-/** Left 4 Dead style tank: punches players across the map, throws rocks, slams the ground, hates fire. */
 public final class TankAbility implements Ability {
     private static final double SLAM_RADIUS = 4.5;
     private final Apocalypse core;
     private final Set<UUID> throwing = new HashSet<>();
-    /** Set while the tank deals damage from a rock or slam, so that damage is not treated as a punch. */
     private boolean special;
 
     TankAbility(Apocalypse core) {
@@ -120,7 +118,6 @@ public final class TankAbility implements Ability {
         if (core.active(world)) { core.announce(world, Msg.good("탱크를 쓰러뜨렸습니다! 보상이 떨어졌습니다.")); }
     }
 
-    /** A thrown rock landed. */
     void landed(Projectile projectile, ProjectileHitEvent event) {
         projectile.remove();
         Location location = event.getHitEntity() != null ? event.getHitEntity().getLocation() : projectile.getLocation();
@@ -174,7 +171,6 @@ public final class TankAbility implements Ability {
         return 1 + difficulty.damagePerDay() * DayMath.dayFactor(core.day(world), difficulty.maxDay());
     }
 
-    /** Lifts a boulder over its head for a second, then throws it at where the player is. */
     private final class Rock implements Effects.Effect {
         private static final int WINDUP = 20;
         private final Zombie tank;

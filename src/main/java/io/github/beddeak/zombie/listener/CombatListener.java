@@ -27,9 +27,7 @@ import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 
-/** Routes melee hits, damage, deaths and landed projectiles to the zombie types, and keeps kill and death counts. */
 public final class CombatListener implements Listener {
-    /** A zombie hit this long before a death still counts as the killer. */
     private static final long BLAME_TICKS = 200;
 
     private record Hit(String attacker, long tick) {}
@@ -41,13 +39,11 @@ public final class CombatListener implements Listener {
         this.core = core;
     }
 
-    /** Celebration fireworks and signal flares are decoration only. */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void firework(EntityDamageByEntityEvent event) {
         if (event.getDamager() instanceof Firework && Tags.helper(event.getDamager()) != null) { event.setCancelled(true); }
     }
 
-    /** Zombies never hurt each other: melee, projectiles, spit clouds and boomer/bomber blasts are all cancelled. */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void noFriendlyFire(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof Zombie) || !core.active(event.getEntity().getWorld())) { return; }
@@ -56,7 +52,6 @@ public final class CombatListener implements Listener {
         }
     }
 
-    /** No infighting: a zombie never takes another zombie as its target, even after being hit by one. */
     @EventHandler(ignoreCancelled = true)
     public void noInfighting(EntityTargetLivingEntityEvent event) {
         if (event.getEntity() instanceof Zombie && event.getTarget() instanceof Zombie && core.active(event.getEntity().getWorld())) {
@@ -68,14 +63,12 @@ public final class CombatListener implements Listener {
         return zombieSource(damager) != null;
     }
 
-    /** The zombie behind a hit: the zombie itself, the shooter of a projectile, or the source of a spit cloud. */
     private static Zombie zombieSource(Entity damager) {
         if (damager instanceof Zombie zombie) { return zombie; }
         if (damager instanceof Projectile projectile) { return projectile.getShooter() instanceof Zombie zombie ? zombie : null; }
         return damager instanceof AreaEffectCloud cloud && cloud.getSource() instanceof Zombie zombie ? zombie : null;
     }
 
-    /** Remembers which zombie last hurt a player, so a death soon after (a fall, a blast, a puddle) can name it. */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void hurt(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof Player player) || !core.active(player.getWorld())) { return; }
@@ -89,7 +82,6 @@ public final class CombatListener implements Listener {
         if (attacker != null) { lastHits.put(player.getUniqueId(), new Hit(attacker, core.ticks())); }
     }
 
-    /** Names the zombie in the death message and counts the death. Other deaths keep the vanilla message. */
     @EventHandler(priority = EventPriority.HIGH)
     public void playerDied(PlayerDeathEvent event) {
         Player player = event.getEntity();
@@ -103,7 +95,6 @@ public final class CombatListener implements Listener {
         }
     }
 
-    /** "부머 좀비", a player zombie by its owner's name, the tank as itself. */
     private static String attackerName(ZombieType type, Zombie zombie) {
         if (type == null || type == ZombieType.DEFAULT) { return "좀비"; }
         return switch (type) {
@@ -153,7 +144,6 @@ public final class CombatListener implements Listener {
         }
     }
 
-    /** A thief holding a stolen totem is not saved by it, so the totem drops whole when the thief dies. */
     @EventHandler(ignoreCancelled = true)
     public void resurrect(EntityResurrectEvent event) {
         if (event.getEntity() instanceof Zombie zombie && Tags.custom(zombie) && Tags.uuid(zombie, Keys.STOLEN_FROM) != null) {

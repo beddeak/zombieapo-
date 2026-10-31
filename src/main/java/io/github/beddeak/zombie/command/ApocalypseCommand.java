@@ -40,7 +40,6 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
             "bloodmoon", "wave", "radio", "finale", "escape");
     private static final int MAX_SPAWN = 50;
     private static final int MAX_EGGS = 64;
-    /** Settings {@code set} lists first, with what they mean; every other key is reachable with tab completion. */
     private static final Map<String, String> MAIN_SETTINGS = new LinkedHashMap<>();
 
     static {
@@ -56,7 +55,6 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
         MAIN_SETTINGS.put("difficulty.health-per-day", "하루당 체력 증가");
     }
 
-    /** Re-reads config.yml and returns its warnings; throws when the file cannot be parsed. */
     @FunctionalInterface public interface Reloader {
         List<String> reload() throws Exception;
     }
@@ -105,7 +103,6 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(message("사용법: /" + label + " <" + String.join("|", SUBCOMMANDS) + ">"));
     }
 
-    /** {@code start [world] [seconds|now]}: the arguments may come in any order. */
     private void start(CommandSender sender, String[] args) {
         Integer grace = null;
         String worldName = null;
@@ -169,7 +166,6 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
         }
     }
 
-    /** {@code stats [world]}: the result board so far, only to the sender. */
     private void stats(CommandSender sender, String[] args) {
         World world = world(sender, args, 1, true);
         if (world == null) { return; }
@@ -187,10 +183,6 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
         }
     }
 
-    /**
-     * {@code set [key] [value]}: changes a config.yml value while playing. It is checked like a reload, applies at once
-     * and is saved. Without a value it shows the current one; without a key it lists the main spawn settings.
-     */
     private void set(CommandSender sender, String[] args, String label) {
         try {
             if (args.length < 2) {
@@ -227,7 +219,6 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
         }
     }
 
-    /** {@code spawn <type> [count]} for players; the console adds {@code <world> <x> <y> <z>}. */
     private void spawn(CommandSender sender, String[] args, String label) {
         Optional<ZombieType> type = args.length >= 2 ? ZombieType.parse(args[1]) : Optional.empty();
         if (type.isEmpty() || type.get() == ZombieType.PLAYER) {
@@ -276,7 +267,6 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
         return player.getLocation().add(player.getLocation().getDirection().setY(0).normalize().multiply(3));
     }
 
-    /** {@code egg <type|all> [count] [player]}: test spawn eggs that spawn the custom zombie. */
     private void egg(CommandSender sender, String[] args, String label) {
         String which = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "";
         boolean all = which.equals("all");
@@ -428,10 +418,6 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(message(problem == null ? "탈출 단계를 끝내고 엔딩으로 넘어갔습니다." : problem));
     }
 
-    /**
-     * World named at {@code index}, otherwise the sender's world, otherwise (console) the only active world.
-     * Sends a message and returns null when it cannot be resolved or must be active but is not.
-     */
     private World world(CommandSender sender, String[] args, int index, boolean mustBeActive) {
         World world;
         if (args.length > index) {
@@ -502,7 +488,6 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
         return options.stream().filter(option -> option.toLowerCase(Locale.ROOT).startsWith(prefix)).toList();
     }
 
-    /** The current value of a setting as the first suggestion, or true/false for switches. */
     private List<String> valueHints(String key) {
         if (!live.known(key)) { return List.of(); }
         try {

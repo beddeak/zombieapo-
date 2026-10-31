@@ -115,8 +115,8 @@ types:
   screamer:                   # 비명으로 주변 좀비를 부르고, 확률로 호드를 부름
     weight: 5
     min-day: 0
-    detect-distance: 16.0
-    radius: 24.0
+    detect-distance: 10.0     # 이 거리 안에 플레이어가 있으면 비명
+    radius: 12.0              # 비명을 들은 좀비가 그 플레이어를 노리는 반경
     cooldown-ticks: 200
   healer:                     # 주변 좀비 회복
     weight: 5
@@ -162,14 +162,14 @@ types:
     ride-ticks: 120
     damage: 1.0
     darkness: false           # true면 실명 대신 어둠 효과
-  witch:                      # 웅크려 울다가 가까이 오거나 때리면 깨운 사람만 쫓아감 (웅크리면 절반 거리까지 안 깸, 좀비 웨이브에는 안 나옴)
-    weight: 3
+  witch:                      # 보라색 이름표. 웅크려 울다가 가까이 오거나 때리면 깨운 사람만 쫓아감 (웅크리면 절반 거리까지 안 깸, 좀비 웨이브에는 안 나옴)
+    weight: 2
     min-day: 0
-    startle-distance: 5.0
-    speed-multiplier: 2.0
-    damage-multiplier: 2.5
-    health-multiplier: 2.0
-    rage-seconds: 30          # 이 시간이 지나거나 쫓던 사람이 쓰러지면 다시 앉아서 운다
+    startle-distance: 4.0
+    speed-multiplier: 1.5
+    damage-multiplier: 1.8
+    health-multiplier: 1.5
+    rage-seconds: 15          # 이 시간이 지나거나 쫓던 사람이 쓰러지면 다시 앉아서 운다
 
 # 보스. 가중치 랜덤이 아니라 아래 규칙으로만 스폰한다.
 tank:

@@ -42,7 +42,6 @@ import org.bukkit.entity.Zombie;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
-/** Central state: active worlds, settings, and the main tick loop that drives every feature. */
 public class Apocalypse {
     private final JavaPlugin plugin;
     private final Logger logger;
@@ -58,15 +57,10 @@ public class Apocalypse {
     private final EndingManager ending;
     private final AssemblyManager assembly;
     private final ExtraSpawner spawner;
-    /** Spawn settings each active world had before we changed them: {monster limit, ticks per spawn}. */
     private final Map<String, long[]> originalSpawn = new HashMap<>();
-    /** Countdown bars of worlds that are still preparing. */
     private final Map<String, WorldBar> preparationBars = new HashMap<>();
-    /** The last seconds of the preparation shown as big numbers: 3, 2, 1. */
     private static final int COUNTDOWN = 3;
-    /** Preparations longer than this (seconds) also get a boss bar and a chat notice; shorter ones are just the intro. */
     private static final int LONG_PREPARATION = 10;
-    /** Kill and death counts change constantly in a fight, so on their own they are written at most this often. */
     private static final long STATS_SAVE_TICKS = 600;
     private Settings settings;
     private BukkitTask task;
@@ -74,7 +68,6 @@ public class Apocalypse {
     private boolean dirty;
     private boolean statsDirty;
     private long lastSave;
-    /** Type of the zombie whose explosion is running right now, or null. */
     private ZombieType zombieBlast;
 
     public Apocalypse(JavaPlugin plugin, Settings settings) {
@@ -136,10 +129,6 @@ public class Apocalypse {
         ending.registerRecipe();
     }
 
-    /**
-     * Registers the world. With a preparation time the apocalypse only begins when the countdown ends; until then the
-     * world behaves like vanilla. False when the world is already running or preparing.
-     */
     public boolean start(World world, int graceSeconds) {
         if (registered(world)) { return false; }
         WorldData data = new WorldData(DayMath.dayIndex(fullTime(world)));
@@ -161,7 +150,6 @@ public class Apocalypse {
         return true;
     }
 
-    /** The countdown is over (or there was none): the apocalypse runs from now, starting on day 1. */
     private void begin(World world, WorldData data) {
         hidePreparation(world);
         data.preparingTicks = 0;
@@ -180,7 +168,6 @@ public class Apocalypse {
         announce(world, Msg.alert("좀비 아포칼립스가 시작되었습니다. 라디오와 안테나 조합법이 레시피북에 추가되었습니다."));
     }
 
-    /** One second of a preparing world's countdown. */
     private void prepare(World world, WorldData data) {
         data.preparingTicks = Math.max(0, data.preparingTicks - 20);
         if (data.preparingTicks == 0) {
@@ -232,10 +219,6 @@ public class Apocalypse {
         return true;
     }
 
-    /**
-     * The apocalypse replaces the monsters, so the ones already around go away when it begins. Animals, villagers,
-     * golems and other non-hostile mobs stay, as do bosses from {@code replace.exclude} and mobs with a name.
-     */
     private int clearMonsters(World world) {
         int removed = 0;
         for (LivingEntity entity : world.getLivingEntities()) {
@@ -249,7 +232,6 @@ public class Apocalypse {
         return removed;
     }
 
-    /** Removes every loaded zombie and helper entity this plugin created in the world. Thieves drop what they stole. */
     public int removeCustomEntities(World world) {
         int removed = 0;
         for (Entity entity : new ArrayList<>(world.getEntities())) {
@@ -265,29 +247,21 @@ public class Apocalypse {
         return removed;
     }
 
-    /** Running: started and past the preparation countdown. Everything apocalypse-related checks this. */
     public boolean active(World world) {
         if (world == null) { return false; }
         WorldData data = store.worlds().get(world.getName());
         return data != null && data.preparingTicks <= 0;
     }
 
-    /** Started, including worlds still in the preparation countdown. */
     public boolean registered(World world) {
         return world != null && store.worlds().containsKey(world.getName());
     }
 
-    /** Seconds left of the preparation countdown, 0 when running or not started. */
     public int preparingSeconds(World world) {
         WorldData data = world == null ? null : store.worlds().get(world.getName());
         return data == null ? 0 : (data.preparingTicks + 19) / 20;
     }
 
-    /**
-     * Right after the start nothing spawns where daylight reaches (caves and spawners are unaffected), so the first
-     * minutes are not an instant swarm. Sky light also counts under tree canopies and giant mushrooms, which a height
-     * check missed in dark forests. Players are not told about it.
-     */
     public boolean quietSurface(Location location) {
         World world = location.getWorld();
         WorldData data = world == null ? null : data(world);
@@ -295,7 +269,6 @@ public class Apocalypse {
         return location.getBlock().getLightFromSky() > 0;
     }
 
-    /** Seconds left of the quiet surface time, for the status command. */
     public int quietSurfaceSeconds(World world) {
         WorldData data = data(world);
         return data == null ? 0 : (data.quietSurfaceTicks + 19) / 20;
@@ -309,7 +282,6 @@ public class Apocalypse {
         return store.worlds().get(world.getName());
     }
 
-    /** Loaded worlds where the apocalypse is running (not preparing). */
     public List<World> activeWorlds() {
         List<World> worlds = new ArrayList<>();
         for (World world : registeredWorlds()) {
@@ -318,7 +290,6 @@ public class Apocalypse {
         return worlds;
     }
 
-    /** Loaded worlds that are running or preparing. */
     public List<World> registeredWorlds() {
         List<World> worlds = new ArrayList<>();
         for (String name : store.worlds().keySet()) {
@@ -328,10 +299,6 @@ public class Apocalypse {
         return worlds;
     }
 
-    /**
-     * Absolute time that drives days and nights. The Nether and the End have no world clock (their time reads 0), so
-     * they follow the main overworld.
-     */
     public long fullTime(World world) {
         return clockWorld(world).getFullTime();
     }
@@ -343,7 +310,6 @@ public class Apocalypse {
         return worlds.isEmpty() ? world : worlds.get(0);
     }
 
-    /** Day number; the Nether and the End share the overworld's day while the apocalypse runs there too. */
     public int day(World world) {
         World clock = clockWorld(world);
         WorldData data = clock != world && data(clock) != null ? data(clock) : data(world);
@@ -366,17 +332,12 @@ public class Apocalypse {
         return bloodMoon.active(world);
     }
 
-    /**
-     * Most custom zombies that natural spawning and extra spawning may gather within {@code spawning.extra.count-radius}
-     * of one spot. Grows with the day and is multiplied on a blood moon. Hordes and abilities are not limited by it.
-     */
     public int crowdCap(World world) {
         int cap = settings.spawning().perPlayerCap()
                 + settings.difficulty().capPerDay() * DayMath.dayFactor(day(world), settings.difficulty().maxDay());
         return bloodMoon(world) ? (int) Math.round(cap * settings.bloodMoon().capMultiplier()) : cap;
     }
 
-    /** Runs an explosion caused by a zombie ability; damage it deals while running is "from a zombie" of that type. */
     public void zombieBlast(ZombieType type, Runnable explosion) {
         zombieBlast = type;
         try {
@@ -390,22 +351,16 @@ public class Apocalypse {
         return zombieBlast != null;
     }
 
-    /** Type of the zombie whose explosion is running, or null outside one. */
     public ZombieType blastType() {
         return zombieBlast;
     }
 
-    /**
-     * Daytime where sky light reaches (open ground, also under tree canopies): spawning there is thinned out by
-     * {@code spawning.daylight} so players can travel. Caves, nights and blood moons are not.
-     */
     public boolean daylight(Location location) {
         World world = location.getWorld();
         if (world == null || !settings.spawning().daylight().enabled() || bloodMoon(world)) { return false; }
         return !DayMath.night(DayMath.timeOfDay(fullTime(world))) && location.getBlock().getLightFromSky() > 0;
     }
 
-    /** {@link #crowdCap} for spots in {@link #daylight}. */
     public int daylightCap(World world) {
         return (int) Math.round(crowdCap(world) * settings.spawning().daylight().capMultiplier());
     }
@@ -419,7 +374,6 @@ public class Apocalypse {
         return SpawnContext.of(day(world), bloodMoon(world));
     }
 
-    /** Players who can fight: in the world, alive, in survival or adventure. */
     public List<Player> survivors(World world) {
         List<Player> result = new ArrayList<>();
         for (Player player : world.getPlayers()) {
@@ -429,7 +383,6 @@ public class Apocalypse {
         return result;
     }
 
-    /** Sends to every player in the world and logs to the console. */
     public void announce(World world, Component message) {
         for (Player player : world.getPlayers()) { player.sendMessage(message); }
         logger.info("[" + world.getName() + "] " + PlainTextComponentSerializer.plainText().serialize(message));
@@ -496,10 +449,8 @@ public class Apocalypse {
         world.setTicksPerSpawns(SpawnCategory.MONSTER, (int) original[1]);
     }
 
-    /** Marks data.yml for writing; the main loop writes it at most once a second and shutdown writes it at once. */
     public void save() { dirty = true; }
 
-    /** Kills, deaths or thefts changed: written with the next save, or within {@link #STATS_SAVE_TICKS}. */
     public void statsChanged() { statsDirty = true; }
 
     public JavaPlugin plugin() { return plugin; }
@@ -517,6 +468,5 @@ public class Apocalypse {
     public AssemblyManager assembly() { return assembly; }
     public long ticks() { return ticks; }
 
-    /** Type name for messages, e.g. "부머". */
     public static String typeName(ZombieType type) { return type.displayName(); }
 }

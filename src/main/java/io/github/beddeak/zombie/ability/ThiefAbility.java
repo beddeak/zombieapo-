@@ -32,13 +32,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
-/**
- * Knocks one stack out of the player's inventory instead of dealing damage: ordinary items first, weapons and armor
- * last. Thieves saved by older versions may still carry a stolen item; the flee, death and removal code below makes
- * sure that item still comes back.
- */
 public final class ThiefAbility implements Ability {
-    /** Ticks before the knocked-out item can be picked up, so it visibly flies off first. */
     private static final int KNOCKED_PICKUP_DELAY = 20;
 
     private final Apocalypse core;
@@ -47,7 +41,6 @@ public final class ThiefAbility implements Ability {
         this.core = core;
     }
 
-    /** Every hit knocks one stack out of the inventory onto the ground instead of dealing damage; the thief keeps fighting. */
     @Override public void attacked(Zombie zombie, Player victim, EntityDamageByEntityEvent event) {
         if (Tags.uuid(zombie, Keys.STOLEN_FROM) != null) { return; }
         PlayerInventory inventory = victim.getInventory();
@@ -84,10 +77,6 @@ public final class ThiefAbility implements Ability {
         zombie.getPathfinder().moveTo(zombie.getLocation().add(away), 1.3);
     }
 
-    /**
-     * Whatever killed the thief, the stolen item comes back unchanged: dropped where it fell, or straight to its owner
-     * when it died in lava or the void.
-     */
     @Override public void died(Zombie zombie, EntityDeathEvent event) {
         UUID owner = Tags.uuid(zombie, Keys.STOLEN_FROM);
         if (owner == null) { return; }
@@ -102,7 +91,6 @@ public final class ThiefAbility implements Ability {
         }
     }
 
-    /** Called before the plugin removes a thief: whatever it holds drops where it stands. */
     public void release(Zombie zombie) {
         if (Tags.uuid(zombie, Keys.STOLEN_FROM) == null) { return; }
         ItemStack stolen = zombie.getEquipment().getItemInMainHand();
@@ -116,7 +104,6 @@ public final class ThiefAbility implements Ability {
         }
     }
 
-    /** Hands items that were returned while their owner was offline. */
     public void deliverPending(Player player) {
         List<String> encoded = core.store().pendingItems().remove(player.getUniqueId());
         if (encoded == null) { return; }
@@ -150,7 +137,6 @@ public final class ThiefAbility implements Ability {
         }
     }
 
-    /** True where a dropped item would be destroyed: lava, fire or the void. */
     private static boolean unsafe(Zombie zombie) {
         Location location = zombie.getLocation();
         if (location.getY() < location.getWorld().getMinHeight()) { return true; }

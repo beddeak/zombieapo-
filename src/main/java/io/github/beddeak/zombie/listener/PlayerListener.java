@@ -28,7 +28,6 @@ import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 
-/** Player zombies, recipe discovery, returned items and the jockey shake-off. */
 public final class PlayerListener implements Listener {
     private final Apocalypse core;
 
@@ -36,7 +35,6 @@ public final class PlayerListener implements Listener {
         this.core = core;
     }
 
-    /** A dead player rises as a zombie wearing their head. Their items drop normally. */
     @EventHandler(priority = EventPriority.MONITOR)
     public void death(PlayerDeathEvent event) {
         Player player = event.getEntity();

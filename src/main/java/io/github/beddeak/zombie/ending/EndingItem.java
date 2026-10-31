@@ -14,7 +14,6 @@ import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.persistence.PersistentDataType;
 
-/** The craftable ending items. Identified by persistent data, so a plain jukebox or end rod never counts. */
 public enum EndingItem {
     RADIO(Keys.RADIO_ITEM, Keys.RADIO_RECIPE, "라디오",
             List.of("구조대와 연락할 수 있는 무전기", "안테나를 붙여 설치한 뒤 두 번 우클릭하면 구조를 요청합니다")),
@@ -60,7 +59,6 @@ public enum EndingItem {
         return recipe;
     }
 
-    /** Which ending item this is, or null. */
     public static EndingItem of(ItemStack item) {
         for (EndingItem kind : values()) {
             if (kind.is(item)) { return kind; }
@@ -68,7 +66,6 @@ public enum EndingItem {
         return null;
     }
 
-    /** Which ending item a crafting recipe makes, or null. */
     public static EndingItem of(Recipe recipe) {
         if (!(recipe instanceof Keyed keyed)) { return null; }
         for (EndingItem kind : values()) {

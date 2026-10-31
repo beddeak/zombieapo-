@@ -6,7 +6,6 @@ import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.LivingEntity;
 
-/** Attribute modifiers owned by this plugin. Only modifiers with our keys are ever replaced or removed. */
 public final class Attributes {
     private Attributes() {}
 

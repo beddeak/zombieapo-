@@ -13,7 +13,6 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Zombie;
 
-/** Walks up to a player, hisses and flashes, then blows itself up. Killing it during the fuse defuses it. */
 final class BomberAbility implements Ability {
     private final Apocalypse core;
     private final Set<UUID> fusing = new HashSet<>();

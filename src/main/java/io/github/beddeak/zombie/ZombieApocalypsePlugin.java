@@ -70,7 +70,6 @@ public final class ZombieApocalypsePlugin extends JavaPlugin {
         return loaded.settings();
     }
 
-    /** Parses first, so a syntax error keeps the previous settings. */
     private List<String> reloadSettings() throws Exception {
         Settings.Loaded loaded = loadSettings();
         apocalypse.settings(applyWarnings(loaded));

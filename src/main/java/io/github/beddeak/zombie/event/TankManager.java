@@ -24,7 +24,6 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Zombie;
 
-/** Spawns the tank boss under its own rules and keeps a world-wide health bar for every loaded tank. */
 public final class TankManager {
     private final Apocalypse core;
     private final Map<UUID, WorldBar> bars = new HashMap<>();
@@ -41,7 +40,6 @@ public final class TankManager {
         return core.ending().inFinale(world) ? core.settings().ending().finale().tankLimit() : core.settings().tank().limit();
     }
 
-    /** Spawns a tank near a random survivor, respecting the per-world limit. */
     public boolean spawnNearSurvivor(World world) {
         List<Player> survivors = core.survivors(world);
         if (survivors.isEmpty()) { return false; }
@@ -49,7 +47,6 @@ public final class TankManager {
         return spawnNear(world, player.getLocation()) != null;
     }
 
-    /** Spawns a tank 18-28 blocks from {@code around}, or right there when no spot is free. Null when at the limit. */
     public Zombie spawnNear(World world, Location around) {
         if (!core.active(world) || count(world) >= limit(world)) { return null; }
         Optional<SpawnLocator.Spot> spot = SpawnLocator.find(new BukkitSampler(world), around.getX(), around.getY(), around.getZ(),

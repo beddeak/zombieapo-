@@ -13,7 +13,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 
-/** Validated, immutable view of config.yml. */
 public record Settings(
         Replace replace,
         Spawning spawning,
@@ -27,23 +26,14 @@ public record Settings(
         Ending ending,
         Start start) {
 
-    /**
-     * Preparation time between {@code /apocalypse start} and the first zombies, then how long nothing spawns under
-     * the open sky so players can settle in.
-     */
     public record Start(int graceSeconds, int quietSurfaceSeconds) {}
 
-    /** {@code keepFromSpawner}: mobs left as they are when a spawner makes them (blazes, for the antenna's blaze rods). */
     public record Replace(Set<SpawnReason> reasons, Set<EntityType> exclude, int spawnerNearbyCap, Set<EntityType> keepFromSpawner) {}
 
     public record Spawning(int monsterSpawnLimit, int ticksPerMonsterSpawn, boolean extraEnabled, int intervalTicks,
                            int perPlayerCap, int globalCap, double countRadius, int perAttempt,
                            double minDistance, double maxDistance, Daylight daylight) {}
 
-    /**
-     * By day, spots that sky light reaches get a smaller crowd cap and fewer extra spawns so players can travel.
-     * Caves, nights and blood moons keep the full numbers.
-     */
     public record Daylight(boolean enabled, double capMultiplier, int perAttempt) {}
 
     public record ZombieOptions(double followRange, boolean showTypeName) {}
@@ -74,10 +64,8 @@ public record Settings(
     public record Escape(int distance, int seconds, double radius, double hordeSizeMultiplier, int gapMin, int gapMax,
                          int pointZombies) {}
 
-    /** Crafting the radio or antenna is an assembly at the crafting table that takes time while waves attack. */
     public record Assembly(int radioSeconds, int antennaSeconds, double radius, double waveSizeMultiplier, int gapMin, int gapMax) {}
 
-    /** A shaped crafting recipe: up to three rows of up to three symbols (space = empty) and what each symbol is. */
     public record Shape(List<String> rows, Map<Character, Material> keys) {}
 
     static final Shape RADIO_SHAPE = new Shape(List.of("DRD", "RHR", "TBT"), Map.of('D', Material.DIAMOND_BLOCK,
@@ -243,7 +231,6 @@ public record Settings(
         return new Shape(List.copyOf(rows), Map.copyOf(used));
     }
 
-    /** Why a crafting shape is invalid, or null: 1-3 rows of the same 1-3 width, every symbol defined, not empty. */
     static String shapeProblem(List<String> rows, java.util.Set<Character> keys) {
         if (rows.isEmpty() || rows.size() > 3) { return "줄은 1~3개여야 합니다."; }
         int width = rows.get(0).length();
@@ -270,7 +257,6 @@ public record Settings(
         return material;
     }
 
-    /** Parses entries like {@code DIAMOND:5}. */
     private static List<Loot> loot(ConfigReader reader, String key, List<Loot> fallback) {
         List<String> entries = reader.strings(key, null);
         if (entries == null) { return fallback; }

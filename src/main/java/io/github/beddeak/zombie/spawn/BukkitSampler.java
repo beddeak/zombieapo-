@@ -6,7 +6,6 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
-/** Reads blocks for {@link SpawnLocator}. Callers check {@link #loaded} first so chunks are never loaded here. */
 public final class BukkitSampler implements SpawnLocator.Sampler {
     private final World world;
 

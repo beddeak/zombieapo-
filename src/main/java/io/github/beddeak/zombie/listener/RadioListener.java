@@ -14,7 +14,6 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 
-/** Placing, breaking, using and protecting the radio and antenna, and assembling them at a crafting table. */
 public final class RadioListener implements Listener {
     private final Apocalypse core;
 
@@ -37,13 +36,11 @@ public final class RadioListener implements Listener {
         core.ending().broken(event);
     }
 
-    /** Crafting the radio or antenna starts an assembly instead of handing the item over. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void craft(CraftItemEvent event) {
         core.assembly().crafted(event);
     }
 
-    /** A crafter block would skip the assembly, so it cannot make them at all. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void crafter(CrafterCraftEvent event) {
         if (EndingItem.of(event.getRecipe()) != null) { event.setCancelled(true); }

@@ -29,15 +29,9 @@ import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemStack;
 
-/**
- * Crafting the radio or the antenna does not hand it over at once: the ingredients are used up and the item is
- * assembled at the crafting table while a zombie wave attacks. Someone has to stay near the table or the assembly
- * pauses. Progress is saved and resumes after a restart; stopping the apocalypse hands the item over at once.
- */
 public final class AssemblyManager {
     private final Apocalypse core;
     private final Map<String, WorldBar> bars = new HashMap<>();
-    /** Worlds whose assembly was restored after a restart and waits for someone at the table before the wave resumes. */
     private final Set<String> waiting = new HashSet<>();
 
     public AssemblyManager(Apocalypse core) {
@@ -49,7 +43,6 @@ public final class AssemblyManager {
         return data != null && data.assemblyItem != null;
     }
 
-    /** The crafting table of a running assembly may not be broken or blown up. */
     public boolean protects(Block block) {
         WorldData data = core.data(block.getWorld());
         return data != null && data.assemblyItem != null && data.assemblyPos != null && data.assemblyPos.matches(block);
@@ -87,7 +80,6 @@ public final class AssemblyManager {
         Location table = inventory.getLocation() != null ? inventory.getLocation() : player.getLocation();
         Settings.Assembly settings = core.settings().ending().assembly();
         int seconds = kind == EndingItem.RADIO ? settings.radioSeconds() : settings.antennaSeconds();
-        // Closing the window inside a click event is unsafe, so it waits a tick.
         core.runLater(1, player::closeInventory);
         if (seconds <= 0) {
             hand(player.getUniqueId(), core.ending().item(kind), table);
@@ -149,7 +141,6 @@ public final class AssemblyManager {
                 ? "하늘이 보이는 땅 위에 설치하고 안테나를 붙이세요." : "라디오 바로 위나 옆에 붙여 설치하세요.")));
     }
 
-    /** The apocalypse stopped: nothing is lost, the item is handed over as it is. */
     public void clear(World world, WorldData data) {
         if (data.assemblyItem != null) {
             EndingItem kind = kindOf(data);
@@ -193,7 +184,6 @@ public final class AssemblyManager {
         if (bar != null) { bar.hide(); }
     }
 
-    /** Gives the item to the crafter if they are online, otherwise drops it on the crafting table. */
     private static void hand(UUID crafter, ItemStack item, Location table) {
         Player player = crafter == null ? null : Bukkit.getPlayer(crafter);
         if (player != null) {

@@ -7,14 +7,10 @@ import org.bukkit.entity.Enemy;
 import org.bukkit.entity.Zombie;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 
-/** What to do with a mob spawning in an active world. */
 public final class ReplaceRules {
     public enum Action {
-        /** Leave the spawn alone. */
         IGNORE,
-        /** A zombie-family mob: keep it and give it a custom type. */
         TAG,
-        /** A hostile mob: cancel it and spawn a custom zombie instead. */
         REPLACE
     }
 

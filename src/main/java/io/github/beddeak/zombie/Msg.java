@@ -7,7 +7,6 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.title.Title;
 import org.bukkit.entity.Player;
 
-/** Chat and title formatting. */
 public final class Msg {
     private Msg() {}
 
@@ -37,7 +36,6 @@ public final class Msg {
         for (Player player : players) { player.showTitle(shown); }
     }
 
-    /** A big number for a countdown, replaced every second. */
     public static void countdown(Collection<? extends Player> players, String text) {
         Title shown = Title.title(Component.text(text, NamedTextColor.RED), Component.empty(),
                 Title.Times.times(Duration.ZERO, Duration.ofMillis(1100), Duration.ofMillis(200)));

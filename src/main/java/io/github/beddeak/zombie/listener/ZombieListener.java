@@ -30,7 +30,6 @@ import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
-/** Spawn replacement, sun immunity, registry tracking and cleanup of leftovers in loaded chunks. */
 public final class ZombieListener implements Listener {
     private static final int GROUND_SEARCH = 48;
     private final Apocalypse core;
@@ -85,7 +84,6 @@ public final class ZombieListener implements Listener {
         core.factory().spawn(target, variant, type, context);
     }
 
-    /** Flying mobs (phantoms, ghasts) are replaced by a zombie standing on the ground below them. */
     private static Location ground(Location location) {
         BukkitSampler sampler = new BukkitSampler(location.getWorld());
         int x = location.getBlockX();
@@ -99,7 +97,6 @@ public final class ZombieListener implements Listener {
         return null;
     }
 
-    /** Only sunlight (a combust event without a block or entity source) is cancelled; fire and lava still burn. */
     @EventHandler(ignoreCancelled = true)
     public void combust(EntityCombustEvent event) {
         if (event.getClass() == EntityCombustEvent.class && event.getEntity() instanceof Zombie

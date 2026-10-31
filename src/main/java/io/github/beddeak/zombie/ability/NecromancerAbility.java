@@ -20,7 +20,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Zombie;
 import org.bukkit.event.entity.EntityDeathEvent;
 
-/** Raises zombies out of the ground near players. They all collapse when the necromancer dies. */
 final class NecromancerAbility implements Ability {
     private static final int RISE_TICKS = 30;
     private static final double BURIED_DEPTH = 1.9;

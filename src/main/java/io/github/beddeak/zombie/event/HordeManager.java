@@ -27,10 +27,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Zombie;
 import org.bukkit.inventory.ItemStack;
 
-/**
- * Left 4 Dead style hordes, one per world at a time. After a warning, waves come from one direction per player.
- * A continuous horde (radio finale and escape) keeps sending waves until it is stopped.
- */
 public final class HordeManager {
     public enum Kind { REGULAR, SCREAMER, MANUAL, CONTINUOUS }
 
@@ -76,7 +72,6 @@ public final class HordeManager {
         return horde != null && horde.kind == Kind.CONTINUOUS;
     }
 
-    /** Starts a normal horde. False when one is already running, hordes are off, or nobody can fight. */
     public boolean start(World world, Kind kind) {
         Settings.Horde settings = core.settings().horde();
         if ((!settings.enabled() && kind != Kind.MANUAL) || running(world) || core.survivors(world).isEmpty()) { return false; }
@@ -92,7 +87,6 @@ public final class HordeManager {
         return true;
     }
 
-    /** Replaces any running horde with endless waves every {@code gapMin..gapMax} seconds. */
     public void startContinuous(World world, double sizeMultiplier, int gapMin, int gapMax) {
         stop(world);
         Horde horde = new Horde(Kind.CONTINUOUS);
@@ -105,7 +99,6 @@ public final class HordeManager {
         warn(world, horde, "끝없이 몰려옵니다. 버티세요!");
     }
 
-    /** Extra zombies spawned around a point with every wave (the escape point). */
     public void extraPoint(World world, Location point, int count) {
         Horde horde = hordes.get(world.getName());
         if (horde == null) { return; }
@@ -125,7 +118,6 @@ public final class HordeManager {
         hordes.clear();
     }
 
-    /** Loaded zombies that belong to the running horde. */
     public int remaining(World world) {
         Horde horde = hordes.get(world.getName());
         if (horde == null) { return 0; }
@@ -136,7 +128,6 @@ public final class HordeManager {
         return count;
     }
 
-    /** A screamer screamed: with some chance, and not too often, it calls a horde. */
     public void screamed(World world) {
         Settings.Horde settings = core.settings().horde();
         if (!settings.enabled() || running(world)) { return; }
@@ -180,7 +171,6 @@ public final class HordeManager {
         Settings settings = core.settings();
         Settings.Horde options = settings.horde();
         if (horde.kind == Kind.CONTINUOUS && remaining(world) >= options.maxWaveTotal()) {
-            // Endless waves would otherwise stack up while nobody fights them; wait until a wave's worth is gone.
             horde.nextWaveAt = core.ticks() + CONTINUOUS_RECHECK_TICKS;
             return;
         }

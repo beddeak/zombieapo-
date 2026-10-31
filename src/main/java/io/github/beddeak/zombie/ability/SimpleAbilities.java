@@ -26,7 +26,6 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
-/** Types whose whole behaviour fits in a few lines. */
 final class SimpleAbilities {
     private SimpleAbilities() {}
 
@@ -39,7 +38,6 @@ final class SimpleAbilities {
         }
     }
 
-    /** Explodes where it died after a short hiss, so the player who killed it can step back. */
     static final class Boomer implements Ability {
         private final Apocalypse core;
         Boomer(Apocalypse core) { this.core = core; }
@@ -132,7 +130,6 @@ final class SimpleAbilities {
         }
     }
 
-    /** Leaps at players who are high up or keeping their distance. Takes no fall damage. */
     static final class Jumper implements Ability {
         private final Apocalypse core;
         Jumper(Apocalypse core) { this.core = core; }
@@ -161,7 +158,6 @@ final class SimpleAbilities {
         }
     }
 
-    /** Invisible until someone gets close, it attacks, or it gets hurt; hides again after a quiet while. */
     static final class Ninja implements Ability {
         private final Apocalypse core;
         Ninja(Apocalypse core) { this.core = core; }
@@ -200,7 +196,6 @@ final class SimpleAbilities {
         }
     }
 
-    /** Screams at a player: nearby zombies take the same target and a horde may follow. */
     static final class Screamer implements Ability {
         private final Apocalypse core;
         Screamer(Apocalypse core) { this.core = core; }
@@ -222,7 +217,6 @@ final class SimpleAbilities {
             core.hordes().screamed(zombie.getWorld());
         }
 
-        /** A sculk shriek and a warden roar; everyone close by goes dark for a moment and hears a heartbeat. */
         private void scream(Zombie zombie, double radius) {
             World world = zombie.getWorld();
             Location head = zombie.getEyeLocation();
@@ -245,7 +239,6 @@ final class SimpleAbilities {
         }
     }
 
-    /** Heals other custom zombies around it, so it is worth killing first. */
     static final class Healer implements Ability {
         private final Apocalypse core;
         Healer(Apocalypse core) { this.core = core; }
@@ -270,7 +263,6 @@ final class SimpleAbilities {
         }
     }
 
-    /** Splits into smaller copies of itself on death; copies split again until a cap is hit. */
     static final class Multiplier implements Ability {
         private final Apocalypse core;
         Multiplier(Apocalypse core) { this.core = core; }
@@ -309,7 +301,6 @@ final class SimpleAbilities {
 
     }
 
-    /** The body class of a zombie, so copies and raised zombies keep the same look. */
     static Class<? extends Zombie> variant(Zombie zombie) {
         if (zombie instanceof Drowned) { return Drowned.class; }
         if (zombie instanceof Husk) { return Husk.class; }

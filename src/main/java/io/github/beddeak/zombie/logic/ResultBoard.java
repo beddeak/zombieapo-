@@ -8,16 +8,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.ToIntFunction;
 
-/** The survival record shown after the ending (and by {@code /apocalypse stats}). */
 public final class ResultBoard {
-    /** One player; {@code tag} is "탈출"/"낙오" after the ending, otherwise null. */
     public record Entry(String name, String tag, PlayerStats stats) {}
 
     public record Board(String header, List<String> rows, List<String> awards) {}
 
     private ResultBoard() {}
 
-    /** Players sorted by kills (fewer deaths first on a tie), followed by the awards that have a winner. */
     public static Board build(int day, List<Entry> entries) {
         List<Entry> sorted = new ArrayList<>(entries);
         sorted.sort(Comparator.comparingInt((Entry entry) -> -entry.stats().totalKills())
@@ -49,7 +46,6 @@ public final class ResultBoard {
         return new Board(header, rows, awards);
     }
 
-    /** The type this player killed most, or null without kills. */
     private static Map.Entry<ZombieType, Integer> favorite(PlayerStats stats) {
         return stats.kills.entrySet().stream().filter(entry -> entry.getValue() > 0)
                 .max(Map.Entry.<ZombieType, Integer>comparingByValue()
@@ -57,7 +53,6 @@ public final class ResultBoard {
                 .orElse(null);
     }
 
-    /** "title: names (count unit)", sharing the award on a tie; nothing when nobody scored. */
     private static void award(List<String> awards, List<Entry> entries, String title, String unit, ToIntFunction<PlayerStats> score) {
         int best = entries.stream().mapToInt(entry -> score.applyAsInt(entry.stats())).max().orElse(0);
         if (best <= 0) { return; }

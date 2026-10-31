@@ -55,23 +55,17 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 
-/**
- * The radio ending: craft and place the radio, request rescue (finale: defend the radio), then run to the escape
- * point (escape). Progress is saved in data.yml and resumes paused after a restart.
- */
 public final class EndingManager {
     private static final class Runtime {
         WorldBar bar;
         TextDisplay display;
         boolean waitingToResume;
         final Map<UUID, Location> compass = new HashMap<>();
-        /** Glowing helipad, light pillar and label at the escape point. */
         final List<Display> escapeMarkers = new ArrayList<>();
     }
 
     private static final int GROUND_SAMPLES = 16;
     private static final int GROUND_SAMPLE_DISTANCE = 16;
-    /** The result board follows the ending titles after a short pause. */
     private static final long RESULT_DELAY_TICKS = 60;
 
     private final Apocalypse core;
@@ -83,8 +77,6 @@ public final class EndingManager {
     public EndingManager(Apocalypse core) {
         this.core = core;
     }
-
-    // ---- radio item and recipe
 
     public void registerRecipe() {
         unregisterRecipe();
@@ -124,7 +116,6 @@ public final class EndingManager {
         return kind == EndingItem.RADIO ? radioItem() : antennaItem();
     }
 
-    /** The antenna is in place: registered, still there, and touching the radio's top or a side. */
     public boolean hasAntenna(World world) {
         BlockPos radio = core.store().radios().get(world.getName());
         BlockPos antenna = core.store().antennas().get(world.getName());
@@ -134,8 +125,6 @@ public final class EndingManager {
         }
         return !world.isChunkLoaded(antenna.x() >> 4, antenna.z() >> 4) || antenna.center(world).getBlock().getType() == antennaBlock;
     }
-
-    // ---- placing, breaking, protecting
 
     public void placed(BlockPlaceEvent event) {
         if (EndingItem.ANTENNA.is(event.getItemInHand())) {
@@ -251,7 +240,6 @@ public final class EndingManager {
         player.sendMessage(Msg.info("안테나를 회수했습니다."));
     }
 
-    /** Keeps the radio and its antenna out of an explosion's block list. */
     public void protect(World world, List<Block> blocks) {
         BlockPos pos = core.store().radios().get(world.getName());
         if (pos != null) { blocks.removeIf(pos::matches); }
@@ -259,15 +247,12 @@ public final class EndingManager {
         if (antenna != null) { blocks.removeIf(antenna::matches); }
     }
 
-    // ---- interaction
-
     public void clicked(PlayerInteractEvent event) {
         Block block = event.getClickedBlock();
         if (block == null) { return; }
         World world = block.getWorld();
         BlockPos pos = core.store().radios().get(world.getName());
         if (pos == null || !pos.matches(block)) { return; }
-        // With the antenna in hand, clicking the radio's top or side places it there; placedAntenna checks the spot.
         if (EndingItem.ANTENNA.is(event.getItem())) { return; }
         event.setCancelled(true);
         if (event.getHand() != EquipmentSlot.HAND) { return; }
@@ -314,14 +299,11 @@ public final class EndingManager {
         player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1f, 0.8f);
     }
 
-    // ---- phases
-
     public boolean inFinale(World world) {
         WorldData data = core.data(world);
         return data != null && data.ending.phase == EndingData.Phase.FINALE;
     }
 
-    /** Starts the finale. Returns a problem description, or null when it started. */
     public String startFinale(World world, WorldData data, String requester) {
         if (core.store().radios().get(world.getName()) == null) { return "이 월드에 설치된 라디오가 없습니다."; }
         if (data.ending.phase != EndingData.Phase.NONE) { return "이미 엔딩이 진행 중이거나 끝났습니다. /apocalypse radio reset 으로 초기화할 수 있습니다."; }
@@ -343,7 +325,6 @@ public final class EndingManager {
         return null;
     }
 
-    /** Ends the finale right away and starts the escape. */
     public String skipFinale(World world, WorldData data) {
         if (data.ending.phase != EndingData.Phase.FINALE) { return "피날레가 진행 중이 아닙니다."; }
         beginEscape(world, data);
@@ -433,7 +414,6 @@ public final class EndingManager {
             runtime.waitingToResume = false;
             startEscapeHorde(world, ending);
         }
-        // The clock keeps running while the last runner is on the respawn screen; it only pauses when nobody is online.
         if (stillRunning(world, ending) > 0) { ending.remainingTicks = Math.max(0, ending.remainingTicks - 20); }
         Location point = ending.escapePoint.center(world);
         for (Player player : survivors) {
@@ -460,7 +440,6 @@ public final class EndingManager {
         if (EndingRules.escapeOver(ending.escaped.size(), stillRunning(world, ending), ending.remainingTicks)) { finish(world, data); }
     }
 
-    /** Players who have not escaped yet, including the ones on the respawn screen. */
     private static int stillRunning(World world, EndingData ending) {
         int count = 0;
         for (Player player : world.getPlayers()) {
@@ -503,7 +482,6 @@ public final class EndingManager {
             if (ending.escaped.contains(player.getUniqueId())) {
                 Msg.title(List.of(player), "구조 성공!", NamedTextColor.GOLD, "무사히 탈출했습니다");
             } else if (mode == GameMode.SURVIVAL || mode == GameMode.ADVENTURE) {
-                // Spectators and creative players (the camera) were never in the run, so they are not left behind.
                 left.add(player.getName());
                 Msg.title(List.of(player), "구조 헬기를 놓쳤습니다...", NamedTextColor.RED, "좀비 세상에 남겨졌습니다");
             }
@@ -532,10 +510,6 @@ public final class EndingManager {
         }
     }
 
-    /**
-     * Kills, deaths and thefts of everyone who took part, plus the awards. After the ending each player is marked as
-     * escaped or left behind.
-     */
     public List<Component> resultBoard(World world) {
         WorldData data = core.data(world);
         if (data == null) { return List.of(); }
@@ -563,9 +537,6 @@ public final class EndingManager {
         return colors[ThreadLocalRandom.current().nextInt(colors.length)];
     }
 
-    // ---- reset, stop, restart
-
-    /** Clears ending progress but keeps the radio and the apocalypse running. */
     public void reset(World world, WorldData data) {
         core.hordes().stop(world);
         restorePlayers(world, data.ending);
@@ -580,7 +551,6 @@ public final class EndingManager {
         core.save();
     }
 
-    /** The apocalypse stopped in this world. */
     public void clear(World world, WorldData data) {
         reset(world, data);
     }
@@ -606,7 +576,6 @@ public final class EndingManager {
         confirmations.clear();
     }
 
-    /** Restores game modes of escaped players whose restore was postponed, and teaches the recipe. */
     public void joined(Player player) {
         DataStore.PendingMode pending = core.store().pendingModes().remove(player.getUniqueId());
         if (pending != null) {
@@ -638,8 +607,6 @@ public final class EndingManager {
         }
         return lines;
     }
-
-    // ---- helpers
 
     private void restorePlayers(World world, EndingData ending) {
         Location safe = ending.escapePoint != null ? ending.escapePoint.center(world).add(0, 0.1, 0) : world.getSpawnLocation();
@@ -701,10 +668,6 @@ public final class EndingManager {
         runtime.display.text(text);
     }
 
-    /**
-     * Why the radio cannot stand here, or null. It must be on solid, natural-height ground under the open sky so the
-     * zombies can always walk up to it; a radio in the air or in a sealed bunker would end the game.
-     */
     private String groundProblem(Block block) {
         World world = block.getWorld();
         int x = block.getX();
@@ -734,7 +697,6 @@ public final class EndingManager {
         };
     }
 
-    /** A glowing helipad, a tall glowing light pillar and a see-through label, so the escape point is easy to find. */
     private void ensureEscapeMarkers(World world, Location point, Runtime runtime) {
         if (!world.isChunkLoaded(point.getBlockX() >> 4, point.getBlockZ() >> 4)) { return; }
         if (!runtime.escapeMarkers.isEmpty() && runtime.escapeMarkers.stream().allMatch(Display::isValid)) { return; }
@@ -785,7 +747,6 @@ public final class EndingManager {
         }
     }
 
-    /** True for the display currently shown above a radio; other radio displays are stale. */
     public boolean currentDisplay(TextDisplay display) {
         for (Runtime runtime : runtimes.values()) {
             if (runtime.display != null && runtime.display.getUniqueId().equals(display.getUniqueId())) { return true; }
@@ -812,7 +773,6 @@ public final class EndingManager {
         return pos == null ? null : pos.center(world).add(0, 0.5, 0);
     }
 
-    /** A dry, solid surface spot about {@code distance} blocks from the radio in a random direction. */
     private BlockPos chooseEscapePoint(World world, Location radio, int distance) {
         BlockPos fallback = null;
         boolean nether = world.getEnvironment() == World.Environment.NETHER;
