@@ -22,6 +22,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerBedEnterEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
@@ -79,6 +80,14 @@ public final class PlayerListener implements Listener {
     public void changedWorld(PlayerChangedWorldEvent event) {
         Player player = event.getPlayer();
         if (core.active(player.getWorld())) { core.ending().discoverRecipe(List.of(player)); }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void bed(PlayerBedEnterEvent event) {
+        Player player = event.getPlayer();
+        if (core.settings().allowSleep() || !core.active(player.getWorld())) { return; }
+        event.setCancelled(true);
+        player.sendActionBar(Msg.warn("좀비 아포칼립스 중에는 잠을 잘 수 없습니다. 리스폰 지점은 정해졌습니다."));
     }
 
     @EventHandler(ignoreCancelled = true)

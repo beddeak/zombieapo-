@@ -25,7 +25,10 @@ public record TypeSettings(
         Thief thief,
         Necromancer necromancer,
         Jockey jockey,
-        Witch witch) {
+        Witch witch,
+        Climber climber,
+        Blaze blaze,
+        Teleporter teleporter) {
 
     public record Spawn(int weight, int minDay) {}
     public record Sprinter(double speedMultiplier) {}
@@ -34,7 +37,7 @@ public record TypeSettings(
     public record Thrower(double horizontal, double vertical) {}
     public record Toxic(int poisonSeconds, int hungerSeconds) {}
     public record Frost(int freezeTicks, int slownessSeconds) {}
-    public record Jumper(int cooldownTicks, double minDistance, double maxDistance) {}
+    public record Jumper(int cooldownTicks, double minDistance, double maxDistance, double maxHeight) {}
     public record Ninja(double revealDistance, int hideAfterTicks) {}
     public record Grabber(double range, double hookSpeed, int windupTicks, int cooldownTicks, double damage) {}
     public record Multiplier(int splitMin, int splitMax, int maxGeneration, double scalePerGeneration,
@@ -48,8 +51,11 @@ public record TypeSettings(
     public record Thief(int fleeSeconds) {}
     public record Necromancer(double range, int cooldownTicks, int raiseMin, int raiseMax, int maxAlive) {}
     public record Jockey(double leapDistance, int cooldownTicks, int rideTicks, double damage, boolean darkness) {}
-    public record Witch(double startleDistance, double speedMultiplier, double damageMultiplier, double healthMultiplier,
-                        int rageSeconds) {}
+    public record Witch(double startleDistance, double viewAngle, double lookDistance, int screamSeconds, double speedMultiplier,
+                        double hitDamage, double healthMultiplier, int rageSeconds) {}
+    public record Climber(double climbSpeed) {}
+    public record Blaze(double minDistance, double maxDistance, int cooldownTicks, int shots) {}
+    public record Teleporter(double minDistance, double maxDistance, int cooldownTicks, double dodgeChance) {}
 
     private static final int MAX_TICKS = 72_000;
 
@@ -60,26 +66,26 @@ public record TypeSettings(
     static TypeSettings read(ConfigReader types, java.util.List<String> warnings) {
         Map<ZombieType, Spawn> spawns = new EnumMap<>(ZombieType.class);
         spawn(types, ZombieType.DEFAULT, 40, 0, spawns);
-        ConfigReader c = spawn(types, ZombieType.SPRINTER, 8, 0, spawns);
+        ConfigReader c = spawn(types, ZombieType.SPRINTER, 6, 0, spawns);
         Sprinter sprinter = new Sprinter(c.number("speed-multiplier", 1.6, 0.1, 5));
-        c = spawn(types, ZombieType.BOOMER, 8, 0, spawns);
+        c = spawn(types, ZombieType.BOOMER, 6, 0, spawns);
         Boomer boomer = new Boomer(c.number("power", 3.0, 0, 10), c.bool("break-blocks", true),
                 c.integer("fuse-ticks", 20, 0, 200));
-        c = spawn(types, ZombieType.BOMBER, 8, 0, spawns);
+        c = spawn(types, ZombieType.BOMBER, 6, 0, spawns);
         Bomber bomber = new Bomber(c.number("trigger-distance", 2.5, 0.5, 16), c.integer("fuse-ticks", 30, 1, 200),
                 c.number("power", 3.0, 0, 10), c.bool("break-blocks", true));
-        c = spawn(types, ZombieType.THROWER, 7, 0, spawns);
+        c = spawn(types, ZombieType.THROWER, 6, 0, spawns);
         Thrower thrower = new Thrower(c.number("horizontal", 1.6, 0, 5), c.number("vertical", 1.0, 0, 5));
-        c = spawn(types, ZombieType.TOXIC, 8, 0, spawns);
+        c = spawn(types, ZombieType.TOXIC, 6, 0, spawns);
         Toxic toxic = new Toxic(c.integer("poison-seconds", 5, 0, 600), c.integer("hunger-seconds", 8, 0, 600));
-        c = spawn(types, ZombieType.FROST, 7, 0, spawns);
+        c = spawn(types, ZombieType.FROST, 6, 0, spawns);
         Frost frost = new Frost(c.integer("freeze-ticks", 160, 0, 1000), c.integer("slowness-seconds", 4, 0, 600));
-        c = spawn(types, ZombieType.JUMPER, 7, 0, spawns);
+        c = spawn(types, ZombieType.JUMPER, 6, 0, spawns);
         Jumper jumper = new Jumper(c.integer("cooldown-ticks", 80, 1, MAX_TICKS), c.number("min-distance", 4, 0, 64),
-                c.number("max-distance", 10, 1, 64));
+                c.number("max-distance", 10, 1, 64), c.number("max-height", 24, 2, 64));
         if (jumper.minDistance() > jumper.maxDistance()) {
             warnings.add("types.jumper: min-distance가 max-distance보다 큽니다. 기본값 4~10을 사용합니다.");
-            jumper = new Jumper(jumper.cooldownTicks(), 4, 10);
+            jumper = new Jumper(jumper.cooldownTicks(), 4, 10, jumper.maxHeight());
         }
         c = spawn(types, ZombieType.NINJA, 6, 0, spawns);
         Ninja ninja = new Ninja(c.number("reveal-distance", 4, 0, 32), c.integer("hide-after-ticks", 100, 1, MAX_TICKS));
@@ -97,13 +103,13 @@ public record TypeSettings(
             multiplier = new Multiplier(2, 3, multiplier.maxGeneration(), multiplier.scalePerGeneration(),
                     multiplier.healthPerGeneration(), multiplier.nearbyCap(), multiplier.nearbyRadius());
         }
-        c = spawn(types, ZombieType.SCREAMER, 5, 0, spawns);
+        c = spawn(types, ZombieType.SCREAMER, 6, 0, spawns);
         Screamer screamer = new Screamer(c.number("detect-distance", 10, 1, 64), c.number("radius", 12, 1, 128),
                 c.integer("cooldown-ticks", 200, 1, MAX_TICKS));
-        c = spawn(types, ZombieType.HEALER, 5, 0, spawns);
+        c = spawn(types, ZombieType.HEALER, 6, 0, spawns);
         Healer healer = new Healer(c.number("radius", 8, 1, 64), c.number("amount", 4, 0, 1000),
                 c.integer("cooldown-ticks", 60, 1, MAX_TICKS));
-        c = spawn(types, ZombieType.SPITTER, 5, 0, spawns);
+        c = spawn(types, ZombieType.SPITTER, 6, 0, spawns);
         Spitter spitter = new Spitter(c.number("min-distance", 5, 0, 64), c.number("max-distance", 16, 1, 64),
                 c.integer("cooldown-ticks", 100, 1, MAX_TICKS), c.integer("puddle-seconds", 5, 1, 120),
                 c.number("puddle-radius", 2.5, 0.5, 10), c.number("hit-damage", 3, 0, 100));
@@ -112,30 +118,47 @@ public record TypeSettings(
             spitter = new Spitter(5, 16, spitter.cooldownTicks(), spitter.puddleSeconds(), spitter.puddleRadius(),
                     spitter.hitDamage());
         }
-        c = spawn(types, ZombieType.PILLAR, 4, 0, spawns);
+        c = spawn(types, ZombieType.PILLAR, 6, 0, spawns);
         Pillar pillar = new Pillar(c.integer("height-min", 3, 2, 8), c.integer("height-max", 4, 2, 8));
         if (pillar.heightMin() > pillar.heightMax()) {
             warnings.add("types.pillar: height-min이 height-max보다 큽니다. 기본값 3~4를 사용합니다.");
             pillar = new Pillar(3, 4);
         }
-        c = spawn(types, ZombieType.VAMPIRE, 5, 0, spawns);
+        c = spawn(types, ZombieType.VAMPIRE, 6, 0, spawns);
         Vampire vampire = new Vampire(c.number("heal-ratio", 1.0, 0, 10));
-        c = spawn(types, ZombieType.THIEF, 4, 0, spawns);
+        c = spawn(types, ZombieType.THIEF, 6, 0, spawns);
         Thief thief = new Thief(c.integer("flee-seconds", 20, 1, 3600));
-        c = spawn(types, ZombieType.NECROMANCER, 3, 0, spawns);
+        c = spawn(types, ZombieType.NECROMANCER, 6, 0, spawns);
         Necromancer necromancer = new Necromancer(c.number("range", 20, 1, 64), c.integer("cooldown-ticks", 240, 1, MAX_TICKS),
                 c.integer("raise-min", 2, 1, 10), c.integer("raise-max", 3, 1, 10), c.integer("max-alive", 6, 1, 50));
         if (necromancer.raiseMin() > necromancer.raiseMax()) {
             warnings.add("types.necromancer: raise-min이 raise-max보다 큽니다. 기본값 2~3을 사용합니다.");
             necromancer = new Necromancer(necromancer.range(), necromancer.cooldownTicks(), 2, 3, necromancer.maxAlive());
         }
-        c = spawn(types, ZombieType.JOCKEY, 5, 0, spawns);
+        c = spawn(types, ZombieType.JOCKEY, 6, 0, spawns);
         Jockey jockey = new Jockey(c.number("leap-distance", 3, 1, 16), c.integer("cooldown-ticks", 100, 1, MAX_TICKS),
                 c.integer("ride-ticks", 120, 1, MAX_TICKS), c.number("damage", 1, 0, 100), c.bool("darkness", false));
         c = spawn(types, ZombieType.WITCH, 2, 0, spawns);
-        Witch witch = new Witch(c.number("startle-distance", 4, 1, 32), c.number("speed-multiplier", 1.5, 0.1, 5),
-                c.number("damage-multiplier", 1.8, 0, 20), c.number("health-multiplier", 1.5, 0.1, 20),
-                c.integer("rage-seconds", 15, 1, 3600));
+        Witch witch = new Witch(c.number("startle-distance", 4, 1, 32), c.number("view-angle", 120, 1, 360),
+                c.number("look-distance", 24, 0, 128), c.integer("scream-seconds", 3, 0, 60),
+                c.number("speed-multiplier", 2.2, 0.1, 5), c.number("hit-damage", 8, 0, 1000),
+                c.number("health-multiplier", 1.5, 0.1, 20), c.integer("rage-seconds", 15, 1, 3600));
+        c = spawn(types, ZombieType.CLIMBER, 6, 0, spawns);
+        Climber climber = new Climber(c.number("climb-speed", 0.2, 0.05, 1));
+        c = spawn(types, ZombieType.BLAZE, 6, 0, spawns);
+        Blaze blaze = new Blaze(c.number("min-distance", 4, 0, 64), c.number("max-distance", 20, 1, 64),
+                c.integer("cooldown-ticks", 100, 1, MAX_TICKS), c.integer("shots", 3, 1, 10));
+        if (blaze.minDistance() > blaze.maxDistance()) {
+            warnings.add("types.blaze: min-distance가 max-distance보다 큽니다. 기본값 4~20을 사용합니다.");
+            blaze = new Blaze(4, 20, blaze.cooldownTicks(), blaze.shots());
+        }
+        c = spawn(types, ZombieType.TELEPORTER, 6, 0, spawns);
+        Teleporter teleporter = new Teleporter(c.number("min-distance", 6, 0, 64), c.number("max-distance", 32, 1, 128),
+                c.integer("cooldown-ticks", 120, 1, MAX_TICKS), c.number("dodge-chance", 0.5, 0, 1));
+        if (teleporter.minDistance() > teleporter.maxDistance()) {
+            warnings.add("types.teleporter: min-distance가 max-distance보다 큽니다. 기본값 6~32를 사용합니다.");
+            teleporter = new Teleporter(6, 32, teleporter.cooldownTicks(), teleporter.dodgeChance());
+        }
 
         int total = spawns.values().stream().mapToInt(Spawn::weight).sum();
         if (total <= 0) {
@@ -143,7 +166,8 @@ public record TypeSettings(
             spawns = defaultSpawns();
         }
         return new TypeSettings(Collections.unmodifiableMap(spawns), sprinter, boomer, bomber, thrower, toxic, frost,
-                jumper, ninja, grabber, multiplier, screamer, healer, spitter, pillar, vampire, thief, necromancer, jockey, witch);
+                jumper, ninja, grabber, multiplier, screamer, healer, spitter, pillar, vampire, thief, necromancer, jockey, witch,
+                climber, blaze, teleporter);
     }
 
     private static ConfigReader spawn(ConfigReader types, ZombieType type, int weight, int minDay,

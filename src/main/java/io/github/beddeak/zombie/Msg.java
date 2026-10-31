@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.Collection;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.title.Title;
 import org.bukkit.entity.Player;
 
@@ -33,6 +34,19 @@ public final class Msg {
     public static void title(Collection<? extends Player> players, String title, NamedTextColor color, String subtitle) {
         Title shown = Title.title(Component.text(title, color), Component.text(subtitle, NamedTextColor.GRAY),
                 Title.Times.times(Duration.ofMillis(300), Duration.ofMillis(2500), Duration.ofMillis(700)));
+        for (Player player : players) { player.showTitle(shown); }
+    }
+
+    public static void opening(Collection<? extends Player> players) {
+        Title shown = Title.title(Component.text("plugin made by beddeak(침댁)", NamedTextColor.GRAY),
+                Component.text("좀비 아포칼립스", NamedTextColor.DARK_RED, TextDecoration.BOLD),
+                Title.Times.times(Duration.ofMillis(300), Duration.ofMillis(3000), Duration.ofMillis(700)));
+        for (Player player : players) { player.showTitle(shown); }
+    }
+
+    public static void credit(Collection<? extends Player> players, String title, String subtitle) {
+        Title shown = Title.title(Component.text(title, NamedTextColor.GOLD, TextDecoration.BOLD), Component.text(subtitle, NamedTextColor.WHITE),
+                Title.Times.times(Duration.ofMillis(500), Duration.ofMillis(2500), Duration.ofMillis(500)));
         for (Player player : players) { player.showTitle(shown); }
     }
 

@@ -13,6 +13,8 @@ import io.github.beddeak.zombie.logic.EndingRules;
 import io.github.beddeak.zombie.logic.ResultBoard;
 import io.github.beddeak.zombie.logic.SpawnLocator;
 import io.github.beddeak.zombie.spawn.BukkitSampler;
+import io.github.beddeak.zombie.weapon.Molotov;
+import io.github.beddeak.zombie.zombie.Keys;
 import io.github.beddeak.zombie.zombie.Tags;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,6 +41,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Display;
@@ -67,6 +70,8 @@ public final class EndingManager {
     private static final int GROUND_SAMPLES = 16;
     private static final int GROUND_SAMPLE_DISTANCE = 16;
     private static final long RESULT_DELAY_TICKS = 60;
+    private static final long CREDITS_START_TICKS = 80;
+    private static final long CREDIT_TICKS = 70;
 
     private final Apocalypse core;
     private final Map<String, Runtime> runtimes = new HashMap<>();
@@ -85,6 +90,7 @@ public final class EndingManager {
         antennaBlock = placeable(ending.antennaBlock(), Material.END_ROD, "antenna-block");
         Bukkit.addRecipe(EndingItem.RADIO.recipe(radioBlock, ending.radioRecipe()));
         Bukkit.addRecipe(EndingItem.ANTENNA.recipe(antennaBlock, ending.antennaRecipe()));
+        Bukkit.addRecipe(Molotov.recipe());
         for (World world : core.activeWorlds()) { discoverRecipe(world.getPlayers()); }
     }
 
@@ -96,11 +102,13 @@ public final class EndingManager {
 
     public void unregisterRecipe() {
         for (EndingItem kind : EndingItem.values()) { Bukkit.removeRecipe(kind.recipeKey()); }
+        Bukkit.removeRecipe(Keys.MOLOTOV);
     }
 
     public void discoverRecipe(Collection<? extends Player> players) {
         for (Player player : players) {
             for (EndingItem kind : EndingItem.values()) { player.discoverRecipe(kind.recipeKey()); }
+            player.discoverRecipe(Keys.MOLOTOV);
         }
     }
 
@@ -145,7 +153,7 @@ public final class EndingManager {
             player.sendMessage(Msg.warn("이 월드에는 이미 라디오가 있습니다: " + existing));
             return;
         }
-        String problem = groundProblem(event.getBlock());
+        String problem = ocean(event.getBlock()) ? "바다에는 라디오를 설치할 수 없습니다. 육지에 설치하세요." : groundProblem(event.getBlock());
         if (problem != null) {
             event.setCancelled(true);
             player.sendMessage(Msg.warn(problem));
@@ -156,6 +164,11 @@ public final class EndingManager {
         player.sendMessage(Msg.good(hasAntenna(world) ? "라디오를 설치했습니다. 두 번 우클릭하면 구조를 요청합니다. 요청하면 좀비가 몰려옵니다!"
                 : "라디오를 설치했습니다. 라디오 바로 위나 옆에 안테나를 붙여 설치해야 구조를 요청할 수 있습니다."));
         world.playSound(event.getBlock().getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1f, 1.2f);
+    }
+
+    private static boolean ocean(Block block) {
+        return List.of(Biome.OCEAN, Biome.DEEP_OCEAN, Biome.COLD_OCEAN, Biome.DEEP_COLD_OCEAN, Biome.FROZEN_OCEAN,
+                Biome.DEEP_FROZEN_OCEAN, Biome.LUKEWARM_OCEAN, Biome.DEEP_LUKEWARM_OCEAN, Biome.WARM_OCEAN).contains(block.getBiome());
     }
 
     private void placedAntenna(BlockPlaceEvent event) {
@@ -321,6 +334,10 @@ public final class EndingManager {
         }
         core.announce(world, Msg.alert(requester + "이(가) 구조를 요청했습니다! " + Msg.clock(finale.seconds())
                 + " 동안 라디오 " + (int) core.settings().ending().finale().radius() + "블록 안에서 버티세요. 비우면 타이머가 멈춥니다."));
+        if (finale.bloodMoon()) {
+            for (Player player : world.getPlayers()) { player.playSound(player.getLocation(), Sound.ENTITY_WITHER_SPAWN, 0.8f, 0.6f); }
+            core.announce(world, Msg.alert("라디오 신호에 좀비들이 블러드문처럼 미쳐 날뜁니다! 더 많이, 더 강하게 몰려옵니다."));
+        }
         core.save();
         return null;
     }
@@ -416,28 +433,42 @@ public final class EndingManager {
         }
         if (stillRunning(world, ending) > 0) { ending.remainingTicks = Math.max(0, ending.remainingTicks - 20); }
         Location point = ending.escapePoint.center(world);
-        for (Player player : survivors) {
-            Location location = player.getLocation();
-            double dx = location.getX() - point.getX();
-            double dz = location.getZ() - point.getZ();
-            if (dx * dx + dz * dz <= escape.radius() * escape.radius() && Math.abs(location.getY() - point.getY()) <= 6) {
-                escaped(world, data, player, point);
-            }
+        List<Player> aboard = survivors.stream().filter(player -> aboard(player, point, escape)).toList();
+        List<Player> standing = survivors.stream().filter(player -> !core.downed().is(player)).toList();
+        int standingAboard = (int) standing.stream().filter(aboard::contains).count();
+        if (EndingRules.helicopterLeaves(standing.size(), standingAboard, ending.remainingTicks)) {
+            leave(world, data, aboard, point);
+            return;
         }
         signal(world, point);
         ensureEscapeMarkers(world, point, runtime);
-        for (Player player : core.survivors(world)) {
+        String seats = "헬기장 " + standingAboard + "/" + standing.size() + "명";
+        for (Player player : standing) {
             Location location = player.getLocation();
             runtime.compass.computeIfAbsent(player.getUniqueId(), id -> player.getCompassTarget());
             player.setCompassTarget(point);
             double dx = point.getX() - location.getX();
             double dz = point.getZ() - location.getZ();
             player.sendActionBar(Component.text("탈출 지점 " + EndingRules.arrow(location.getYaw(), dx, dz) + " "
-                    + (int) Math.sqrt(dx * dx + dz * dz) + "m  |  남은 시간 " + Msg.clock(ending.remainingTicks / 20), NamedTextColor.GOLD));
+                    + (int) Math.sqrt(dx * dx + dz * dz) + "m  |  " + seats + "  |  남은 시간 " + Msg.clock(ending.remainingTicks / 20),
+                    NamedTextColor.GOLD));
         }
-        bar(world, runtime, "탈출까지 " + Msg.clock(ending.remainingTicks / 20) + " / 탈출 " + ending.escaped.size() + "명 / 남은 좀비 "
+        bar(world, runtime, "탈출까지 " + Msg.clock(ending.remainingTicks / 20) + " / " + seats + " (서 있는 사람이 다 모이면 출발) / 남은 좀비 "
                 + core.hordes().remaining(world), ending);
-        if (EndingRules.escapeOver(ending.escaped.size(), stillRunning(world, ending), ending.remainingTicks)) { finish(world, data); }
+    }
+
+    private static boolean aboard(Player player, Location point, Settings.Escape escape) {
+        Location location = player.getLocation();
+        double dx = location.getX() - point.getX();
+        double dz = location.getZ() - point.getZ();
+        return dx * dx + dz * dz <= escape.radius() * escape.radius() && Math.abs(location.getY() - point.getY()) <= 6;
+    }
+
+    private void leave(World world, WorldData data, List<Player> aboard, Location point) {
+        for (Player player : aboard) { escaped(world, data, player, point); }
+        List<String> names = aboard.stream().map(Player::getName).toList();
+        core.announce(world, Msg.good("구조 헬기가 출발했습니다! 탈출: " + (names.isEmpty() ? "없음" : String.join(", ", names))));
+        finish(world, data);
     }
 
     private static int stillRunning(World world, EndingData ending) {
@@ -453,12 +484,12 @@ public final class EndingManager {
         EndingData ending = data.ending;
         ending.escaped.add(player.getUniqueId());
         ending.originalModes.put(player.getUniqueId(), player.getGameMode());
+        core.downed().clear(player);
         player.setGameMode(GameMode.SPECTATOR);
         Location original = runtime(world).compass.remove(player.getUniqueId());
         if (original != null) { player.setCompassTarget(original); }
         Msg.title(List.of(player), "탈출 성공!", NamedTextColor.GREEN, "구조 헬기에 올라탔습니다");
         firework(point, Color.LIME);
-        core.announce(world, Msg.good(player.getName() + "이(가) 탈출에 성공했습니다!"));
         core.save();
     }
 
@@ -495,8 +526,14 @@ public final class EndingManager {
         core.announce(world, Msg.info(settings.message()));
         List<Component> board = resultBoard(world);
         core.runLater(RESULT_DELAY_TICKS, () -> board.forEach(line -> core.announce(world, line)));
+        ResultBoard.Board result = board(world);
+        List<EndingRules.Credit> credits = EndingRules.credits(core.day(world), saved, left, result == null ? List.of() : result.awards());
+        for (int index = 0; index < credits.size(); index++) {
+            EndingRules.Credit credit = credits.get(index);
+            core.runLater(CREDITS_START_TICKS + index * CREDIT_TICKS, () -> Msg.credit(world.getPlayers(), credit.title(), credit.subtitle()));
+        }
         core.save();
-        long delay = settings.autoStopDelaySeconds() * 20L;
+        long delay = Math.max(settings.autoStopDelaySeconds() * 20L, CREDITS_START_TICKS + (long) credits.size() * CREDIT_TICKS + 20);
         if (settings.autoStop()) {
             core.runLater(delay, () -> {
                 WorldData current = core.data(world);
@@ -511,8 +548,18 @@ public final class EndingManager {
     }
 
     public List<Component> resultBoard(World world) {
+        ResultBoard.Board board = board(world);
+        if (board == null) { return List.of(); }
+        List<Component> lines = new ArrayList<>();
+        lines.add(Msg.prefix().append(Component.text(board.header(), NamedTextColor.GOLD, TextDecoration.BOLD)));
+        board.rows().forEach(row -> lines.add(Component.text(row, NamedTextColor.WHITE)));
+        board.awards().forEach(award -> lines.add(Component.text(award, NamedTextColor.YELLOW)));
+        return lines;
+    }
+
+    private ResultBoard.Board board(World world) {
         WorldData data = core.data(world);
-        if (data == null) { return List.of(); }
+        if (data == null) { return null; }
         boolean done = data.ending.phase == EndingData.Phase.DONE;
         Set<UUID> players = new LinkedHashSet<>();
         data.stats.forEach((id, stats) -> {
@@ -524,12 +571,7 @@ public final class EndingManager {
             String tag = done ? (data.ending.escaped.contains(id) ? "탈출" : "낙오") : null;
             entries.add(new ResultBoard.Entry(name(id), tag, data.stats.getOrDefault(id, new PlayerStats())));
         }
-        ResultBoard.Board board = ResultBoard.build(core.day(world), entries);
-        List<Component> lines = new ArrayList<>();
-        lines.add(Msg.prefix().append(Component.text(board.header(), NamedTextColor.GOLD, TextDecoration.BOLD)));
-        board.rows().forEach(row -> lines.add(Component.text(row, NamedTextColor.WHITE)));
-        board.awards().forEach(award -> lines.add(Component.text(award, NamedTextColor.YELLOW)));
-        return lines;
+        return ResultBoard.build(core.day(world), entries);
     }
 
     private static Color index2Color() {

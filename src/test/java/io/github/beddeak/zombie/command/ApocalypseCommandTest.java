@@ -18,7 +18,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class ApocalypseCommandTest {
-    private static final String USAGE = "사용법: /apoc <start|stop|status|stats|reload|set|spawn|egg|day|bloodmoon|wave|radio|finale|escape>";
+    private static final String USAGE = "사용법: /apoc <start|stop|status|stats|reload|set|limit|spawn|egg|molotov|day|bloodmoon|wave|radio|finale|escape>";
     private final Apocalypse core = mock(Apocalypse.class);
     private final ApocalypseCommand.Reloader reloader = mock(ApocalypseCommand.Reloader.class);
     private final LiveConfig live = mock(LiveConfig.class);
@@ -34,7 +34,7 @@ class ApocalypseCommandTest {
         when(world.getName()).thenReturn("world");
     }
 
-    @ParameterizedTest @ValueSource(strings = {"start", "stop", "status", "stats", "reload", "set", "spawn", "egg", "day", "bloodmoon", "wave", "radio", "finale", "escape"})
+    @ParameterizedTest @ValueSource(strings = {"start", "stop", "status", "stats", "reload", "set", "limit", "spawn", "egg", "molotov", "day", "bloodmoon", "wave", "radio", "finale", "escape"})
     void ordinaryPlayersCannotUseAnySubcommand(String subcommand) throws Exception {
         executor.onCommand(player, command, "apocalypse", new String[]{subcommand});
         verify(player).sendMessage(ApocalypseCommand.message("권한이 없습니다."));
@@ -149,6 +149,9 @@ class ApocalypseCommandTest {
         assertEquals(List.of("boomer", "bomber"), executor.onTabComplete(player, command, "apoc", new String[]{"spawn", "bo"}));
         assertFalse(executor.onTabComplete(player, command, "apoc", new String[]{"spawn", ""}).contains("player"));
         assertEquals(List.of("egg", "escape"), executor.onTabComplete(player, command, "apoc", new String[]{"e"}));
+        assertEquals(List.of("day"), executor.onTabComplete(player, command, "apoc", new String[]{"limit", "d"}));
+        assertEquals(List.of("molotov"), executor.onTabComplete(player, command, "apoc", new String[]{"m"}));
+        assertEquals(List.of("1", "2", "3", "7"), executor.onTabComplete(player, command, "apoc", new String[]{"limit", "day", ""}));
         assertEquals(List.of("all"), executor.onTabComplete(player, command, "apoc", new String[]{"egg", "a"}));
         List<String> eggs = executor.onTabComplete(player, command, "apoc", new String[]{"egg", ""});
         assertTrue(eggs.contains("tank") && eggs.contains("jockey"));
@@ -170,6 +173,34 @@ class ApocalypseCommandTest {
         verify(player).sendMessage(ApocalypseCommand.message("바꾸지 않았습니다. " + key + ": 숫자가 아닙니다."));
         verify(player).sendMessage(ApocalypseCommand.message("모르는 설정입니다: nope. /apoc set 뒤에서 탭을 누르면 목록이 나옵니다."));
         verify(live, never()).set(eq("nope"), anyString());
+    }
+
+    @Test void limitChangesTheServerCapAndTheDay() throws Exception {
+        admin();
+        String key = "spawning.extra.global-cap";
+        Settings next = Settings.defaults();
+        when(live.known(key)).thenReturn(true);
+        when(live.value(key)).thenReturn(1000);
+        when(live.set(key, "2000")).thenReturn(new LiveConfig.Change(next, 1000, 2000, null));
+        when(core.active(world)).thenReturn(true);
+        executor.onCommand(player, command, "apoc", new String[]{"limit"});
+        executor.onCommand(player, command, "apoc", new String[]{"limit", "2000"});
+        executor.onCommand(player, command, "apoc", new String[]{"limit", "day", "3"});
+        executor.onCommand(player, command, "apoc", new String[]{"limit", "1", "2"});
+        verify(player).sendMessage(ApocalypseCommand.message("서버 전체 좀비 상한: 1000. 바꾸기: /apoc limit <수>, 날짜 바꾸기: /apoc limit day <일차>"));
+        verify(core).settings(next);
+        verify(player).sendMessage(ApocalypseCommand.message(key + ": 1000 → 2000 (바로 적용, config.yml에 저장)"));
+        verify(core).setDay(world, 3);
+        verify(player).sendMessage(ApocalypseCommand.message("사용법: /apoc limit [수] 또는 /apoc limit day <일차> [월드]"));
+    }
+
+    @Test void molotovRejectsBadCounts() {
+        admin();
+        executor.onCommand(player, command, "apoc", new String[]{"molotov", "0"});
+        executor.onCommand(player, command, "apoc", new String[]{"molotov", "많이"});
+        executor.onCommand(player, command, "apoc", new String[]{"molotov", "65"});
+        verify(player, times(3)).sendMessage(ApocalypseCommand.message("수는 1~64 사이여야 합니다."));
+        verify(player, never()).getInventory();
     }
 
     @Test void setTabsCompleteKeysAndSuggestTheCurrentValue() throws Exception {

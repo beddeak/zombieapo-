@@ -7,6 +7,7 @@ import io.github.beddeak.zombie.data.DataStore;
 import io.github.beddeak.zombie.data.WorldData;
 import io.github.beddeak.zombie.ending.AssemblyManager;
 import io.github.beddeak.zombie.ending.EndingManager;
+import io.github.beddeak.zombie.weapon.Molotov;
 import io.github.beddeak.zombie.event.BloodMoonManager;
 import io.github.beddeak.zombie.event.HordeManager;
 import io.github.beddeak.zombie.event.TankManager;
@@ -57,6 +58,9 @@ public class Apocalypse {
     private final EndingManager ending;
     private final AssemblyManager assembly;
     private final ExtraSpawner spawner;
+    private final Molotov molotov;
+    private final HandLight handLight;
+    private final Downed downed;
     private final Map<String, long[]> originalSpawn = new HashMap<>();
     private final Map<String, WorldBar> preparationBars = new HashMap<>();
     private static final int COUNTDOWN = 3;
@@ -85,6 +89,9 @@ public class Apocalypse {
         this.ending = new EndingManager(this);
         this.assembly = new AssemblyManager(this);
         this.spawner = new ExtraSpawner(this);
+        this.molotov = new Molotov(this);
+        this.handLight = new HandLight(this);
+        this.downed = new Downed(this);
     }
 
     public void enable() {
@@ -107,6 +114,8 @@ public class Apocalypse {
     public void shutdown() {
         if (task != null) { task.cancel(); }
         effects.endAll();
+        handLight.clear();
+        downed.clearAll();
         hordes.clearAll();
         bloodMoon.clearAll();
         tanks.clearAll();
@@ -140,7 +149,7 @@ public class Apocalypse {
         data.preparingTicks = graceSeconds * 20;
         data.preparingTotal = data.preparingTicks;
         save();
-        Msg.title(world.getPlayers(), "좀비 아포칼립스", NamedTextColor.DARK_RED, "");
+        Msg.opening(world.getPlayers());
         for (Player player : world.getPlayers()) {
             player.playSound(player.getLocation(), Sound.ENTITY_WITHER_SPAWN, 0.7f, 0.5f);
         }
@@ -329,7 +338,7 @@ public class Apocalypse {
     }
 
     public boolean bloodMoon(World world) {
-        return bloodMoon.active(world);
+        return bloodMoon.active(world) || settings.ending().finale().bloodMoon() && ending.inFinale(world);
     }
 
     public int crowdCap(World world) {
@@ -396,6 +405,8 @@ public class Apocalypse {
     private void tick() {
         ticks++;
         safely("effects", effects::tick);
+        if (ticks % 2 == 0) { safely("hand light", handLight::tick); }
+        if (ticks % Downed.TICK_INTERVAL == 0) { safely("downed", downed::tick); }
         if (ticks % 10 == 0) {
             safely("abilities", abilities::tick);
             safely("tank bars", tanks::updateBars);
@@ -465,6 +476,8 @@ public class Apocalypse {
     public HordeManager hordes() { return hordes; }
     public TankManager tanks() { return tanks; }
     public EndingManager ending() { return ending; }
+    public Molotov molotov() { return molotov; }
+    public Downed downed() { return downed; }
     public AssemblyManager assembly() { return assembly; }
     public long ticks() { return ticks; }
 

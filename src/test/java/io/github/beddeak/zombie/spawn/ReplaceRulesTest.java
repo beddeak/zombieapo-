@@ -25,6 +25,15 @@ class ReplaceRulesTest {
         assertEquals(Action.REPLACE, ReplaceRules.decide(EntityType.SLIME, SpawnReason.NATURAL, replace));
     }
 
+    @Test void ridersOfDesertCamelsAndSpidersAreReplaced() {
+        assertEquals(Action.REPLACE, ReplaceRules.decide(EntityType.PARCHED, SpawnReason.JOCKEY, replace));
+        assertEquals(Action.REPLACE, ReplaceRules.decide(EntityType.PARCHED, SpawnReason.NATURAL, replace));
+        assertEquals(Action.REPLACE, ReplaceRules.decide(EntityType.SKELETON, SpawnReason.JOCKEY, replace));
+        assertEquals(Action.TAG, ReplaceRules.decide(EntityType.HUSK, SpawnReason.JOCKEY, replace));
+        assertEquals(Action.IGNORE, ReplaceRules.decide(EntityType.CAMEL_HUSK, SpawnReason.NATURAL, replace));
+        assertEquals(Action.IGNORE, ReplaceRules.decide(EntityType.CHICKEN, SpawnReason.MOUNT, replace));
+    }
+
     @Test void blazesFromSpawnersAreKept() {
         assertEquals(Action.IGNORE, ReplaceRules.decide(EntityType.BLAZE, SpawnReason.SPAWNER, replace));
         assertEquals(Action.REPLACE, ReplaceRules.decide(EntityType.BLAZE, SpawnReason.NATURAL, replace));

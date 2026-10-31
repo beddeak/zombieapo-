@@ -2,6 +2,7 @@ package io.github.beddeak.zombie.listener;
 
 import io.github.beddeak.zombie.Apocalypse;
 import io.github.beddeak.zombie.data.WorldData;
+import io.github.beddeak.zombie.weapon.Molotov;
 import io.github.beddeak.zombie.zombie.Keys;
 import io.github.beddeak.zombie.zombie.Tags;
 import io.github.beddeak.zombie.zombie.ZombieType;
@@ -15,6 +16,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.entity.ThrownPotion;
 import org.bukkit.entity.Zombie;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -153,6 +155,10 @@ public final class CombatListener implements Listener {
 
     @EventHandler
     public void landed(ProjectileHitEvent event) {
+        if (event.getEntity() instanceof ThrownPotion potion && Molotov.is(potion.getItem())) {
+            core.molotov().landed(potion, event);
+            return;
+        }
         core.abilities().projectileLanded(event.getEntity(), event);
     }
 }

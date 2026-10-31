@@ -20,6 +20,40 @@ public final class AbilityRules {
         return Math.pow(perGeneration, Math.max(0, generation - 1));
     }
 
+    public static double apex(double velocity) {
+        double height = 0;
+        for (double v = velocity; v > 0; v = (v - 0.08) * 0.98) { height += v; }
+        return height;
+    }
+
+    public static int apexTicks(double velocity) {
+        int ticks = 0;
+        for (double v = velocity; v > 0; v = (v - 0.08) * 0.98) { ticks++; }
+        return ticks;
+    }
+
+    public static double jumpVelocity(double height) {
+        double low = 0;
+        double high = 4;
+        for (int step = 0; step < 40; step++) {
+            double middle = (low + high) / 2;
+            if (apex(middle) >= height) { high = middle; } else { low = middle; }
+        }
+        return high;
+    }
+
+    public static double glideSpeed(double distance, int ticks) {
+        return distance * 0.09 / (1 - Math.pow(0.91, Math.max(1, ticks)));
+    }
+
+    public static boolean inFront(float yaw, double dx, double dz, double viewAngle) {
+        double length = Math.sqrt(dx * dx + dz * dz);
+        if (viewAngle >= 360 || length < 1e-6) { return true; }
+        double radians = Math.toRadians(yaw);
+        double facing = (-Math.sin(radians) * dx + Math.cos(radians) * dz) / length;
+        return facing >= Math.cos(Math.toRadians(viewAngle / 2));
+    }
+
     public static boolean weaponOrArmor(Material material) {
         String name = material.name().toUpperCase(Locale.ROOT);
         return name.endsWith("_SWORD") || name.endsWith("_AXE") || name.endsWith("_SPEAR") || name.endsWith("_HELMET")

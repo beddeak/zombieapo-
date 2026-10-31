@@ -56,7 +56,7 @@ public final class ExtraSpawner {
                         spawning.minDistance(), spawning.maxDistance(), 0, Math.PI, cave, ThreadLocalRandom.current(), 6);
                 if (spot.isEmpty()) { continue; }
                 Location location = new Location(world, spot.get().x() + 0.5, spot.get().y(), spot.get().z() + 0.5);
-                if (core.quietSurface(location)) { continue; }
+                if (core.quietSurface(location) || location.getBlock().getLightFromBlocks() > spawning.maxBlockLight()) { continue; }
                 if (core.daylight(location)) {
                     if (daylightLeft <= 0) { continue; }
                     daylightLeft--;

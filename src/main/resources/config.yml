@@ -14,7 +14,8 @@ start:
 
 replace:
   # 이 원인으로 스폰되는 적대적 몹을 좀비로 바꾼다. 좀비 계열은 이 원인으로 스폰될 때 커스텀 타입을 받는다.
-  reasons: [NATURAL, SPAWNER, TRIAL_SPAWNER, PATROL]
+  # JOCKEY/MOUNT: 다른 몹에 타고 나오는 몹 (사막 낙타 허스크에 탄 해골, 거미에 탄 해골 등)
+  reasons: [NATURAL, SPAWNER, TRIAL_SPAWNER, PATROL, JOCKEY, MOUNT]
   # 좀비로 바꾸지 않는 몹
   exclude: [ENDER_DRAGON, WITHER, WARDEN, ELDER_GUARDIAN]
   # 스포너(일반, 시련) 16블록 안의 커스텀 좀비가 이 수 이상이면 스폰을 막기만 하고 좀비를 새로 만들지 않는다
@@ -31,11 +32,12 @@ spawning:
     enabled: true
     interval-ticks: 100
     per-player-cap: 40        # 한 지점 주변(count-radius) 커스텀 좀비가 이 수 이상이면 자연 스폰·대체·추가 스폰을 멈춘다. 날짜와 블러드문에 따라 늘어난다
-    global-cap: 500           # 서버 전체 커스텀 좀비 상한
+    global-cap: 1000          # 서버 전체 커스텀 좀비 상한 (/apoc limit <수>로 바로 변경)
     count-radius: 48
     per-attempt: 5            # interval-ticks마다 플레이어 1명 주변에 추가로 스폰하는 최대 수
     min-distance: 20
     max-distance: 40
+    max-block-light: 7        # 횃불·랜턴 같은 블록 빛이 이보다 밝은 자리에는 추가 스폰을 안 한다 (15면 빛 무시, 좀비 웨이브는 상관없음)
   # 낮에 햇빛이 닿는 곳(지상, 나무 그늘 포함)은 좀비를 훨씬 적게 스폰해서 돌아다닐 수 있게 한다. 동굴, 밤, 블러드문은 그대로
   daylight:
     enabled: true
@@ -52,43 +54,44 @@ types:
     weight: 40
     min-day: 0
   sprinter:                   # 매우 빠름
-    weight: 8
+    weight: 6
     min-day: 0
     speed-multiplier: 1.6
   boomer:                     # 죽은 자리에서 폭발
-    weight: 8
+    weight: 6
     min-day: 0
     power: 3.0
     break-blocks: true
     fuse-ticks: 20
   bomber:                     # 크리퍼처럼 다가와 자폭
-    weight: 8
+    weight: 6
     min-day: 0
     trigger-distance: 2.5
     fuse-ticks: 30
     power: 3.0
     break-blocks: true
   thrower:                    # 맞은 플레이어를 날려버림
-    weight: 7
+    weight: 6
     min-day: 0
     horizontal: 1.6
     vertical: 1.0
   toxic:                      # 타격 시 독과 허기
-    weight: 8
+    weight: 6
     min-day: 0
     poison-seconds: 5
     hunger-seconds: 8
   frost:                      # 타격 시 얼어붙음
-    weight: 7
+    weight: 6
     min-day: 0
     freeze-ticks: 160
     slowness-seconds: 4
   jumper:                     # 높은 곳이나 멀리 있는 플레이어에게 뛰어듦
-    weight: 7
+    weight: 6
     min-day: 0
     cooldown-ticks: 80
     min-distance: 4.0
     max-distance: 10.0
+    max-height: 24.0          # 이 높이까지는 위에 있는 플레이어 머리 위로 정확히 뛰어올라 덮친다 (기둥 쌓고 버티기 방지)
   ninja:                      # 평소에는 투명
     weight: 6
     min-day: 0
@@ -113,19 +116,19 @@ types:
     nearby-cap: 60
     nearby-radius: 32.0
   screamer:                   # 비명으로 주변 좀비를 부르고, 확률로 호드를 부름
-    weight: 5
+    weight: 6
     min-day: 0
     detect-distance: 10.0     # 이 거리 안에 플레이어가 있으면 비명
     radius: 12.0              # 비명을 들은 좀비가 그 플레이어를 노리는 반경
     cooldown-ticks: 200
   healer:                     # 주변 좀비 회복
-    weight: 5
+    weight: 6
     min-day: 0
     radius: 8.0
     amount: 4.0
     cooldown-ticks: 60
   spitter:                    # 산성 덩어리를 뱉어 웅덩이를 만듦
-    weight: 5
+    weight: 6
     min-day: 0
     min-distance: 5.0
     max-distance: 16.0
@@ -134,20 +137,20 @@ types:
     puddle-radius: 2.5
     hit-damage: 3.0
   pillar:                     # 여러 마리가 목마처럼 겹친 탑
-    weight: 4
+    weight: 6
     min-day: 0
     height-min: 3
     height-max: 4
   vampire:                    # 때린 만큼 회복
-    weight: 5
+    weight: 6
     min-day: 0
     heal-ratio: 1.0
   thief:                      # 핫바 아이템을 훔쳐 도망 (잡으면 반드시 돌려받음)
-    weight: 4
+    weight: 6
     min-day: 0
     flee-seconds: 20
   necromancer:                # 땅에서 좀비를 일으킴
-    weight: 3
+    weight: 6
     min-day: 0
     range: 20.0
     cooldown-ticks: 240
@@ -155,21 +158,42 @@ types:
     raise-max: 3
     max-alive: 6
   jockey:                     # 머리 위에 올라타 시야를 가림
-    weight: 5
+    weight: 6
     min-day: 0
     leap-distance: 3.0
     cooldown-ticks: 100
     ride-ticks: 120
     damage: 1.0
     darkness: false           # true면 실명 대신 어둠 효과
-  witch:                      # 보라색 이름표. 웅크려 울다가 가까이 오거나 때리면 깨운 사람만 쫓아감 (웅크리면 절반 거리까지 안 깸, 좀비 웨이브에는 안 나옴)
+  witch:                      # SCP-096처럼: 웅크려 울다가 얼굴을 쳐다보거나 앞에서 가까이 오거나 때리면, 비명을 지른 뒤 그 사람만 쫓아감 (좀비 웨이브에는 안 나옴)
     weight: 2
     min-day: 0
-    startle-distance: 4.0
-    speed-multiplier: 1.5
-    damage-multiplier: 1.8
+    look-distance: 24.0       # 이 거리 안에서 얼굴(머리)을 정면으로 쳐다보면 깸 (0이면 쳐다봐도 안 깸)
+    startle-distance: 4.0     # 앞에서 이 거리 안으로 오면 깸 (웅크리면 절반)
+    view-angle: 120.0         # 얼굴 앞 이 각도 안에서만 깸 (뒤·옆으로는 지나갈 수 있음, 360이면 사방)
+    scream-seconds: 3         # 깨면 이 시간 동안 제자리에서 비명을 지른 뒤 쫓아감
+    speed-multiplier: 2.2     # 쫓을 때 속도 배율 (전력질주보다 훨씬 빠름)
+    hit-damage: 8.0           # 쫓을 때 한 대 피해 (8 = 하트 4칸, 방어구로 줄어듦)
     health-multiplier: 1.5
     rage-seconds: 15          # 이 시간이 지나거나 쫓던 사람이 쓰러지면 다시 앉아서 운다
+  climber:                    # 쫓는 플레이어가 위에 있으면 벽이나 기둥을 거미처럼 타고 올라감 (세게 쳐서 떨어뜨릴 수 있음)
+    weight: 6
+    min-day: 0
+    climb-speed: 0.2          # 틱당 올라가는 블록 수 (0.2면 초당 4블록)
+  blaze:                      # 몸에 불이 붙은 채로 블레이즈처럼 화염구를 연달아 쏨 (불·용암 피해 면역, 화염구는 블록을 태우지 않음)
+    weight: 6
+    min-day: 0
+    min-distance: 4.0
+    max-distance: 20.0
+    cooldown-ticks: 100
+    shots: 3                  # 한 번에 쏘는 화염구 수
+  teleporter:                 # 엔더맨처럼 보라 입자를 흘리며 쫓는 플레이어 등 뒤로 순간이동
+    weight: 6
+    min-day: 0
+    min-distance: 6.0         # 쫓는 플레이어가 이 거리 밖이면
+    max-distance: 32.0        # 이 거리 안에서 등 뒤로 순간이동
+    cooldown-ticks: 120
+    dodge-chance: 0.5         # 맞을 때 이 확률로 순간이동: 화살 등은 피하고 멀어짐, 근접 공격은 맞고 때린 사람 등 뒤로
 
 # 보스. 가중치 랜덤이 아니라 아래 규칙으로만 스폰한다.
 tank:
@@ -190,6 +214,8 @@ tank:
   slam-damage: 6.0
   loot: [GOLDEN_APPLE:3]
   exp: 100
+  break-blocks: true          # 쫓는 동안 지나가는 길의 블록을 부수며 나아간다 (상자 내용물은 떨어짐, 라디오·안테나·조립 작업대는 안 부숨)
+  break-max-hardness: 50.0    # 이 단단함까지 부순다 (흑요석 50, 기반암 등 부술 수 없는 블록은 제외)
 
 difficulty:
   health-per-day: 0.05        # 하루마다 체력 +5%
@@ -216,7 +242,7 @@ player-zombie:
 horde:
   enabled: true
   regular-every-days: 3       # 3, 6, 9일차… 그날 랜덤 시간 (0이면 정기 호드 없음)
-  screamer-chance: 0.25
+  screamer-chance: 1.0
   screamer-cooldown-seconds: 300
   warning-seconds: 10
   waves: [2, 3]
@@ -233,7 +259,7 @@ ending:
   radio-block: JUKEBOX
   radio-recipe:               # 작업대 배치 그대로. shape의 한 글자가 keys의 아이템이고, 공백은 빈칸
     shape: ["DRD", "RHR", "TBT"]
-    keys: {D: DIAMOND_BLOCK, R: REDSTONE_BLOCK, H: HEART_OF_THE_SEA, T: REDSTONE_TORCH, B: NOTE_BLOCK}
+    keys: {D: DIAMOND_BLOCK, R: REDSTONE_BLOCK, H: HEART_OF_THE_SEA, T: REDSTONE_TORCH, B: JUKEBOX}
   antenna-block: END_ROD
   antenna-recipe:             # 라디오 바로 위나 옆에 붙여 설치해야 구조를 요청할 수 있다
     shape: [" C ", "BRB", " C "]
@@ -254,6 +280,7 @@ ending:
     wave-gap-seconds: [15, 20]
     tank-at-seconds: [60, 210]
     tank-limit: 2
+    blood-moon: true          # 구조 요청(라디오를 지키는) 동안 블러드문과 같은 효과: 스폰 빠르고 많음, 특수 좀비 증가, 체력·속도 강화, 낮 감소 없음
   escape:
     distance: 100
     seconds: 180
@@ -264,3 +291,28 @@ ending:
   auto-stop: true             # 엔딩 후 아포칼립스를 자동으로 끈다
   auto-stop-delay-seconds: 10
   message: "구조 헬기가 도착했습니다. 생존자들은 무사히 탈출했습니다."
+
+# 화염병: 부싯돌 + 실 + 유리병. 던지면 깨지면서 바닥에 불이 번진다. 불은 보이기만 하고 실제 블록은 타지 않는다.
+molotov:
+  radius: 3.5
+  seconds: 10                 # 바닥 불이 남아 있는 시간
+  damage: 4.0                 # 불붙은 몹이 1초마다 받는 피해 (탱크는 tank.fire-damage-multiplier 배)
+  max-health-percent: 1.5     # 여기에 최대 체력의 이 %를 1초마다 더 받는다 (날짜로 강해진 탱크에도 통하게)
+  burn-seconds: 8             # 불을 밟은 몹은 빠져나가도 이만큼 계속 타면서 같은 피해를 받는다
+  burn-players: true          # 불 위의 플레이어에게도 불이 붙는다 (바닐라 불 피해만)
+
+# 횃불이나 랜턴을 손에 들면 든 사람 화면에서만 주변이 밝아진다 (실제 블록은 바뀌지 않음)
+hand-light: true
+
+# 아포칼립스가 켜진 월드에서 침대로 잠을 잘 수 있는지 (false면 못 잠. 침대를 누르면 리스폰 지점은 그대로 정해진다)
+allow-sleep: false
+
+# 죽을 만큼 맞으면 바로 죽지 않고 쓰러진다. 동료가 옆에서 웅크리고 있으면 살아난다. 못 살리면 진짜 죽는다(플레이어 좀비 + 리스폰).
+# 쓰러진 동안은 기어다니고(느림, 점프 불가) 빛나며, 먹거나 체력이 회복되지 않는다. 체력바가 출혈 남은 시간이고 좀비에게 맞으면 더 빨리 줄어든다.
+downed:
+  enabled: true
+  bleed-seconds: 60           # 쓰러진 뒤 이 시간 안에 못 살리면 죽는다
+  revive-seconds: 5           # 동료가 옆에서 이만큼 웅크리고 있으면 살아난다
+  revive-distance: 2.5
+  revive-health: 6.0          # 살아나면 이 체력 (6 = 하트 3칸)
+  crawl-speed: 0.15           # 쓰러진 동안 이동 속도 배율

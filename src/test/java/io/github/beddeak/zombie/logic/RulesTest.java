@@ -2,6 +2,7 @@ package io.github.beddeak.zombie.logic;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.List;
 import java.util.Random;
 import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
@@ -55,6 +56,29 @@ class RulesTest {
         assertEquals(-1, AbilityRules.theftSlot(36, 0, slot -> false, weapons::contains, random));
     }
 
+    @Test void jumperJumpsJustHighEnoughAndLandsOnTheTarget() {
+        assertEquals(1.25, AbilityRules.apex(0.42), 0.01, "vanilla jump height");
+        double lift = AbilityRules.jumpVelocity(25);
+        assertTrue(AbilityRules.apex(lift) >= 25);
+        assertTrue(AbilityRules.apex(lift - 0.02) < 25);
+        assertTrue(lift < 4, "stays under the excessive velocity warning");
+        assertTrue(AbilityRules.apexTicks(lift) > AbilityRules.apexTicks(AbilityRules.jumpVelocity(5)));
+        int ticks = AbilityRules.apexTicks(lift);
+        double speed = AbilityRules.glideSpeed(6, ticks);
+        assertEquals(6, speed * (1 - Math.pow(0.91, ticks)) / 0.09, 1e-9);
+    }
+
+    @Test void witchOnlyNoticesPlayersInFrontOfHer() {
+        assertTrue(AbilityRules.inFront(0, 0, 3, 120), "yaw 0 faces +Z");
+        assertFalse(AbilityRules.inFront(0, 0, -3, 120), "directly behind");
+        assertFalse(AbilityRules.inFront(0, 3, 0, 120), "to the side");
+        assertTrue(AbilityRules.inFront(0, 1.5, 3, 120), "inside the cone");
+        assertTrue(AbilityRules.inFront(90, -3, 0.5, 120), "yaw 90 faces -X");
+        assertFalse(AbilityRules.inFront(90, 3, 0, 120));
+        assertTrue(AbilityRules.inFront(0, 0, -3, 360), "360 sees all around");
+        assertTrue(AbilityRules.inFront(0, 0, 0, 120), "standing on her");
+    }
+
     @Test void jockeyIsShakenOffByThreeQuickSneaks() {
         AbilityRules.Shake shake = new AbilityRules.Shake(3, 30);
         assertFalse(shake.press(0));
@@ -105,10 +129,21 @@ class RulesTest {
         assertArrayEquals(new int[]{100, 0}, column);
     }
 
-    @Test void escapeWaitsForPlayersWhoAreStillRunningOrRespawning() {
-        assertFalse(EndingRules.escapeOver(1, 1, 600), "the last one left died and is respawning");
-        assertTrue(EndingRules.escapeOver(2, 0, 600), "everyone made it");
-        assertFalse(EndingRules.escapeOver(0, 0, 600), "nobody made it yet");
-        assertTrue(EndingRules.escapeOver(0, 3, 0), "time is up");
+    @Test void helicopterLeavesWhenEveryoneStandingIsAboard() {
+        assertTrue(EndingRules.helicopterLeaves(2, 2, 600), "everyone standing is aboard");
+        assertFalse(EndingRules.helicopterLeaves(3, 2, 600), "one is still running");
+        assertTrue(EndingRules.helicopterLeaves(2, 2, 600), "a downed friend left outside does not hold it");
+        assertFalse(EndingRules.helicopterLeaves(0, 0, 600), "everyone is down or respawning");
+        assertTrue(EndingRules.helicopterLeaves(3, 0, 0), "time is up");
+    }
+
+    @Test void creditsListSurvivorsTheLeftBehindAwardsAndTheAuthor() {
+        List<EndingRules.Credit> credits = EndingRules.credits(12, List.of("A", "B"), List.of("C"), List.of("최다 처치: A (30마리)"));
+        assertEquals(new EndingRules.Credit("좀비 아포칼립스", "12일 동안 살아남았습니다"), credits.get(0));
+        assertEquals(new EndingRules.Credit("탈출한 생존자", "A, B"), credits.get(1));
+        assertEquals(new EndingRules.Credit("남겨진 사람들", "C"), credits.get(2));
+        assertEquals(new EndingRules.Credit("최다 처치", "A (30마리)"), credits.get(3));
+        assertEquals("plugin made by beddeak(침댁)", credits.get(credits.size() - 1).title());
+        assertEquals(3, EndingRules.credits(1, List.of(), List.of(), List.of()).size());
     }
 }

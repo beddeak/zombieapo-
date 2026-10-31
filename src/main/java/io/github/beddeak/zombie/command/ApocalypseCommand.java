@@ -6,6 +6,7 @@ import io.github.beddeak.zombie.config.LiveConfig;
 import io.github.beddeak.zombie.data.WorldData;
 import io.github.beddeak.zombie.event.HordeManager;
 import io.github.beddeak.zombie.logic.DayMath;
+import io.github.beddeak.zombie.weapon.Molotov;
 import io.github.beddeak.zombie.zombie.TestEgg;
 import io.github.beddeak.zombie.zombie.ZombieType;
 import java.util.ArrayList;
@@ -36,10 +37,11 @@ import org.bukkit.inventory.ItemStack;
 
 public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
     public static final String PERMISSION = "zombieapoc.admin";
-    static final List<String> SUBCOMMANDS = List.of("start", "stop", "status", "stats", "reload", "set", "spawn", "egg", "day",
+    static final List<String> SUBCOMMANDS = List.of("start", "stop", "status", "stats", "reload", "set", "limit", "spawn", "egg", "molotov", "day",
             "bloodmoon", "wave", "radio", "finale", "escape");
     private static final int MAX_SPAWN = 50;
     private static final int MAX_EGGS = 64;
+    private static final String GLOBAL_CAP = "spawning.extra.global-cap";
     private static final Map<String, String> MAIN_SETTINGS = new LinkedHashMap<>();
 
     static {
@@ -86,8 +88,10 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
                 if (args.length == 1) { reload(sender); } else { usage(sender, label); }
             }
             case "set" -> set(sender, args, label);
+            case "limit" -> limit(sender, args, label);
             case "spawn" -> spawn(sender, args, label);
             case "egg" -> egg(sender, args, label);
+            case "molotov" -> molotov(sender, args);
             case "day" -> day(sender, args, label);
             case "bloodmoon" -> bloodMoon(sender, args, label);
             case "wave", "horde" -> horde(sender, args, label);
@@ -183,6 +187,32 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
         }
     }
 
+    private void limit(CommandSender sender, String[] args, String label) {
+        if (args.length >= 2 && args[1].equalsIgnoreCase("day")) {
+            String[] dayArgs = new String[args.length];
+            dayArgs[0] = "day";
+            dayArgs[1] = "set";
+            System.arraycopy(args, 2, dayArgs, 2, args.length - 2);
+            day(sender, dayArgs, label);
+            return;
+        }
+        if (args.length > 2) {
+            sender.sendMessage(message("사용법: /" + label + " limit [수] 또는 /" + label + " limit day <일차> [월드]"));
+            return;
+        }
+        if (args.length == 2) {
+            set(sender, new String[]{"set", GLOBAL_CAP, args[1]}, label);
+            return;
+        }
+        try {
+            sender.sendMessage(message("서버 전체 좀비 상한: " + live.value(GLOBAL_CAP) + ". 바꾸기: /" + label + " limit <수>, 날짜 바꾸기: /"
+                    + label + " limit day <일차>"));
+        } catch (Exception exception) {
+            logger.log(Level.WARNING, "ZombieApocalypse could not read config.yml", exception);
+            sender.sendMessage(message("config.yml을 읽지 못했습니다. 서버 로그를 확인하세요."));
+        }
+    }
+
     private void set(CommandSender sender, String[] args, String label) {
         try {
             if (args.length < 2) {
@@ -265,6 +295,29 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
         Block block = player.getTargetBlockExact(32);
         if (block != null) { return block.getLocation().add(0.5, 1, 0.5); }
         return player.getLocation().add(player.getLocation().getDirection().setY(0).normalize().multiply(3));
+    }
+
+    private void molotov(CommandSender sender, String[] args) {
+        int count = 1;
+        if (args.length >= 2) {
+            Integer parsed = number(args[1]);
+            if (parsed == null || parsed < 1 || parsed > MAX_EGGS) {
+                sender.sendMessage(message("수는 1~" + MAX_EGGS + " 사이여야 합니다."));
+                return;
+            }
+            count = parsed;
+        }
+        Player target = args.length >= 3 ? Bukkit.getPlayerExact(args[2]) : sender instanceof Player player ? player : null;
+        if (target == null) {
+            sender.sendMessage(message("받을 플레이어를 찾을 수 없습니다."));
+            return;
+        }
+        for (int left = count; left > 0; left -= Molotov.MAX_STACK) {
+            for (ItemStack rest : target.getInventory().addItem(Molotov.create(Math.min(left, Molotov.MAX_STACK))).values()) {
+                target.getWorld().dropItemNaturally(target.getLocation(), rest);
+            }
+        }
+        sender.sendMessage(message(target.getName() + "에게 화염병을 " + count + "개 줬습니다."));
     }
 
     private void egg(CommandSender sender, String[] args, String label) {
@@ -461,8 +514,10 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
                 case "start" -> concat(List.of("now", "60", "300"), worldNames());
                 case "stop", "stats" -> worldNames();
                 case "set" -> live.complete(args[1]);
+                case "limit" -> List.of("day", "1000", "2000");
                 case "spawn" -> typeNames();
                 case "egg" -> eggNames();
+                case "molotov" -> List.of("1", "8", "16");
                 case "day" -> List.of("set");
                 case "bloodmoon", "wave", "horde" -> List.of("start", "stop");
                 case "radio" -> List.of("give", "status", "reset");
@@ -475,6 +530,8 @@ public final class ApocalypseCommand implements CommandExecutor, TabCompleter {
                 case "radio" -> args[1].equalsIgnoreCase("give")
                         ? Bukkit.getOnlinePlayers().stream().map(Player::getName).toList() : worldNames();
                 case "set" -> valueHints(args[1]);
+                case "limit" -> args[1].equalsIgnoreCase("day") ? List.of("1", "2", "3", "7") : List.of();
+                case "molotov" -> Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
                 case "spawn", "egg" -> List.of("1", "5", "10");
                 case "bloodmoon", "wave", "horde", "finale", "escape" -> worldNames();
                 default -> List.of();

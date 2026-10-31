@@ -25,6 +25,9 @@ public enum ZombieType {
     NECROMANCER("네크로맨서", true),
     JOCKEY("자키", true),
     WITCH("위치", true),
+    CLIMBER("클라이머", true),
+    BLAZE("블레이즈", true),
+    TELEPORTER("텔레포터", true),
     PLAYER("플레이어", false),
     TANK("탱크", false);
 

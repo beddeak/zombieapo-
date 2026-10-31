@@ -4,6 +4,7 @@ import io.github.beddeak.zombie.command.ApocalypseCommand;
 import io.github.beddeak.zombie.config.LiveConfig;
 import io.github.beddeak.zombie.config.Settings;
 import io.github.beddeak.zombie.listener.CombatListener;
+import io.github.beddeak.zombie.listener.DownedListener;
 import io.github.beddeak.zombie.listener.EggListener;
 import io.github.beddeak.zombie.listener.PlayerListener;
 import io.github.beddeak.zombie.listener.RadioListener;
@@ -37,6 +38,7 @@ public final class ZombieApocalypsePlugin extends JavaPlugin {
         plugins.registerEvents(new PlayerListener(apocalypse), this);
         plugins.registerEvents(new RadioListener(apocalypse), this);
         plugins.registerEvents(new EggListener(apocalypse), this);
+        plugins.registerEvents(new DownedListener(apocalypse), this);
         YamlConfiguration defaults = YamlConfiguration.loadConfiguration(
                 new InputStreamReader(Objects.requireNonNull(getResource("config.yml"), "Missing bundled config.yml"), StandardCharsets.UTF_8));
         LiveConfig live = new LiveConfig(new File(getDataFolder(), "config.yml"), defaults);

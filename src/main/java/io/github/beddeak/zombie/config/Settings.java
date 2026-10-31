@@ -24,15 +24,24 @@ public record Settings(
         PlayerZombie playerZombie,
         Horde horde,
         Ending ending,
-        Start start) {
+        Start start,
+        Molotov molotov,
+        boolean handLight,
+        boolean allowSleep,
+        Downed downed) {
 
     public record Start(int graceSeconds, int quietSurfaceSeconds) {}
+
+    public record Downed(boolean enabled, int bleedSeconds, int reviveSeconds, double reviveDistance, double reviveHealth,
+                         double crawlSpeed) {}
+
+    public record Molotov(double radius, int seconds, double damage, double maxHealthPercent, int burnSeconds, boolean burnPlayers) {}
 
     public record Replace(Set<SpawnReason> reasons, Set<EntityType> exclude, int spawnerNearbyCap, Set<EntityType> keepFromSpawner) {}
 
     public record Spawning(int monsterSpawnLimit, int ticksPerMonsterSpawn, boolean extraEnabled, int intervalTicks,
                            int perPlayerCap, int globalCap, double countRadius, int perAttempt,
-                           double minDistance, double maxDistance, Daylight daylight) {}
+                           double minDistance, double maxDistance, int maxBlockLight, Daylight daylight) {}
 
     public record Daylight(boolean enabled, double capMultiplier, int perAttempt) {}
 
@@ -43,7 +52,7 @@ public record Settings(
     public record Tank(boolean enabled, double health, double damage, double scale, double speedMultiplier, int limit,
                        boolean bloodMoon, double hordeFinalChance, int hordeMinDay, int everyDays,
                        double fireDamageMultiplier, int rockCooldownTicks, double rockDamage, int slamCooldownTicks,
-                       double slamDamage, List<Loot> loot, int exp) {}
+                       double slamDamage, List<Loot> loot, int exp, boolean breakBlocks, double breakMaxHardness) {}
 
     public record Difficulty(double healthPerDay, double damagePerDay, int specialWeightPerDay, int capPerDay,
                              int maxDay, boolean dayTitle) {}
@@ -59,7 +68,7 @@ public record Settings(
                         int sprinterBonusWeight, List<Loot> reward) {}
 
     public record Finale(int seconds, double radius, double height, double hordeSizeMultiplier, int gapMin, int gapMax,
-                         List<Integer> tankAtSeconds, int tankLimit) {}
+                         List<Integer> tankAtSeconds, int tankLimit, boolean bloodMoon) {}
 
     public record Escape(int distance, int seconds, double radius, double hordeSizeMultiplier, int gapMin, int gapMax,
                          int pointZombies) {}
@@ -69,7 +78,7 @@ public record Settings(
     public record Shape(List<String> rows, Map<Character, Material> keys) {}
 
     static final Shape RADIO_SHAPE = new Shape(List.of("DRD", "RHR", "TBT"), Map.of('D', Material.DIAMOND_BLOCK,
-            'R', Material.REDSTONE_BLOCK, 'H', Material.HEART_OF_THE_SEA, 'T', Material.REDSTONE_TORCH, 'B', Material.NOTE_BLOCK));
+            'R', Material.REDSTONE_BLOCK, 'H', Material.HEART_OF_THE_SEA, 'T', Material.REDSTONE_TORCH, 'B', Material.JUKEBOX));
     static final Shape ANTENNA_SHAPE = new Shape(List.of(" C ", "BRB", " C "), Map.of('C', Material.IRON_CHAIN,
             'B', Material.BLAZE_ROD, 'R', Material.REDSTONE));
 
@@ -90,7 +99,7 @@ public record Settings(
         ConfigReader r = reader.child("replace");
         Replace replace = new Replace(
                 enums(r, "reasons", SpawnReason.class, EnumSet.of(SpawnReason.NATURAL, SpawnReason.SPAWNER,
-                        SpawnReason.TRIAL_SPAWNER, SpawnReason.PATROL)),
+                        SpawnReason.TRIAL_SPAWNER, SpawnReason.PATROL, SpawnReason.JOCKEY, SpawnReason.MOUNT)),
                 enums(r, "exclude", EntityType.class, EnumSet.of(EntityType.ENDER_DRAGON, EntityType.WITHER,
                         EntityType.WARDEN, EntityType.ELDER_GUARDIAN)),
                 r.integer("spawner-nearby-cap", 12, 0, 1000),
@@ -111,8 +120,8 @@ public record Settings(
         Spawning spawning = new Spawning(s.integer("monster-spawn-limit", 150, 0, 10_000),
                 s.integer("ticks-per-monster-spawn", 1, 1, 10_000), extra.bool("enabled", true),
                 extra.integer("interval-ticks", 100, 1, 72_000), extra.integer("per-player-cap", 40, 0, 1000),
-                extra.integer("global-cap", 500, 0, 10_000), extra.number("count-radius", 48, 1, 256),
-                extra.integer("per-attempt", 5, 1, 100), minDistance, maxDistance, daylight);
+                extra.integer("global-cap", 1000, 0, 10_000), extra.number("count-radius", 48, 1, 256),
+                extra.integer("per-attempt", 5, 1, 100), minDistance, maxDistance, extra.integer("max-block-light", 7, 0, 15), daylight);
 
         ConfigReader z = reader.child("zombie");
         ZombieOptions zombie = new ZombieOptions(z.number("follow-range", 40, 1, 2048), z.bool("show-type-name", false));
@@ -127,7 +136,7 @@ public record Settings(
                 t.integer("rock-cooldown-ticks", 120, 1, 72_000), t.number("rock-damage", 8, 0, 1000),
                 t.integer("slam-cooldown-ticks", 160, 1, 72_000), t.number("slam-damage", 6, 0, 1000),
                 loot(t, "loot", List.of(new Loot(Material.GOLDEN_APPLE, 3))),
-                t.integer("exp", 100, 0, 100_000));
+                t.integer("exp", 100, 0, 100_000), t.bool("break-blocks", true), t.number("break-max-hardness", 50, 0, 10_000));
 
         ConfigReader d = reader.child("difficulty");
         Difficulty difficulty = new Difficulty(d.number("health-per-day", 0.05, 0, 10), d.number("damage-per-day", 0.03, 0, 10),
@@ -148,7 +157,7 @@ public record Settings(
         int[] waves = h.range("waves", 2, 3, 1, 20);
         int[] distance = h.range("distance", 30, 45, 8, 128);
         Horde horde = new Horde(h.bool("enabled", true), h.integer("regular-every-days", 3, 0, 100_000),
-                h.number("screamer-chance", 0.25, 0, 1), h.integer("screamer-cooldown-seconds", 300, 0, 86_400),
+                h.number("screamer-chance", 1.0, 0, 1), h.integer("screamer-cooldown-seconds", 300, 0, 86_400),
                 h.integer("warning-seconds", 10, 0, 300), waves[0], waves[1], h.integer("wave-gap-seconds", 20, 1, 3600),
                 h.integer("base-size", 8, 0, 500), h.integer("size-per-day", 1, 0, 500), h.integer("max-wave-total", 80, 1, 2000),
                 distance[0], distance[1], h.integer("timeout-seconds", 180, 10, 86_400),
@@ -167,7 +176,8 @@ public record Settings(
         int[] finaleGap = f.range("wave-gap-seconds", 15, 20, 1, 3600);
         Finale finale = new Finale(f.integer("seconds", 300, 10, 86_400), f.number("radius", 32, 1, 256), f.number("height", 8, 1, 256),
                 f.number("horde-size-multiplier", 1.5, 0, 20), finaleGap[0], finaleGap[1],
-                f.integers("tank-at-seconds", List.of(60, 210), 0, 86_400), f.integer("tank-limit", 2, 1, 10));
+                f.integers("tank-at-seconds", List.of(60, 210), 0, 86_400), f.integer("tank-limit", 2, 1, 10),
+                f.bool("blood-moon", true));
         ConfigReader x = e.child("escape");
         int[] escapeGap = x.range("wave-gap-seconds", 20, 25, 1, 3600);
         Escape escape = new Escape(x.integer("distance", 100, 10, 2000), x.integer("seconds", 180, 10, 86_400),
@@ -180,9 +190,19 @@ public record Settings(
         ConfigReader st = reader.child("start");
         Start start = new Start(st.integer("grace-seconds", 6, 0, 86_400), st.integer("quiet-surface-seconds", 180, 0, 86_400));
 
+        ConfigReader m = reader.child("molotov");
+        Molotov molotov = new Molotov(m.number("radius", 3.5, 1, 8), m.integer("seconds", 10, 1, 60), m.number("damage", 4, 0, 100),
+                m.number("max-health-percent", 1.5, 0, 100), m.integer("burn-seconds", 8, 0, 60), m.bool("burn-players", true));
+
+        boolean handLight = reader.bool("hand-light", true);
+        boolean allowSleep = reader.bool("allow-sleep", false);
+        ConfigReader dn = reader.child("downed");
+        Downed downed = new Downed(dn.bool("enabled", true), dn.integer("bleed-seconds", 60, 1, 3600), dn.integer("revive-seconds", 5, 0, 60),
+                dn.number("revive-distance", 2.5, 0.5, 16), dn.number("revive-health", 6, 1, 1000), dn.number("crawl-speed", 0.15, 0, 1));
+
         reader.finish();
         return new Loaded(new Settings(replace, spawning, zombie, types, tank, difficulty, bloodMoon, playerZombie, horde, ending,
-                start), List.copyOf(warnings));
+                start, molotov, handLight, allowSleep, downed), List.copyOf(warnings));
     }
 
     private static <E extends Enum<E>> Set<E> enums(ConfigReader reader, String key, Class<E> type, Set<E> fallback) {

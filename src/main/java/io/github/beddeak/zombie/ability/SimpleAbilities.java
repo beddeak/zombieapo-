@@ -2,6 +2,7 @@ package io.github.beddeak.zombie.ability;
 
 import io.github.beddeak.zombie.Apocalypse;
 import io.github.beddeak.zombie.config.TypeSettings;
+import io.github.beddeak.zombie.logic.AbilityRules;
 import io.github.beddeak.zombie.zombie.Attributes;
 import io.github.beddeak.zombie.zombie.Keys;
 import io.github.beddeak.zombie.zombie.SpawnContext;
@@ -146,15 +147,46 @@ final class SimpleAbilities {
             Location to = target.getLocation();
             double distance = Support.horizontalDistance(from, to);
             double rise = to.getY() - from.getY();
-            boolean high = rise >= 2 && distance <= options.maxDistance();
+            boolean high = rise >= 2 && rise + 1 <= options.maxHeight() && distance <= options.maxDistance();
             boolean far = distance >= options.minDistance() && distance <= options.maxDistance();
             if (!high && !far) { return; }
-            double speed = Math.min(1.6, distance * 0.16 + 0.2);
-            double lift = Math.min(1.5, 0.55 + Math.max(0, rise) * 0.12);
-            zombie.setVelocity(Support.flatDirection(from, to).multiply(speed).setY(lift));
+            Vector direction = Support.flatDirection(from, to);
+            if (high) {
+                double lift = AbilityRules.jumpVelocity(rise + 1);
+                double speed = Math.min(1.6, AbilityRules.glideSpeed(distance, AbilityRules.apexTicks(lift)));
+                zombie.setVelocity(direction.multiply(speed).setY(lift));
+                core.effects().add(new Leap(zombie));
+            } else {
+                double speed = Math.min(1.6, distance * 0.16 + 0.2);
+                double lift = Math.min(1.5, 0.55 + Math.max(0, rise) * 0.12);
+                zombie.setVelocity(direction.multiply(speed).setY(lift));
+            }
             zombie.getWorld().playSound(from, Sound.ENTITY_RAVAGER_ROAR, 0.6f, 1.8f);
             zombie.getWorld().spawnParticle(Particle.CLOUD, from, 8, 0.3, 0.1, 0.3, 0.02);
             Tags.cooldown(zombie, Keys.COOLDOWN, options.cooldownTicks());
+        }
+
+        private static final class Leap implements Effects.Effect {
+            private final Zombie zombie;
+            private int ticks;
+
+            Leap(Zombie zombie) { this.zombie = zombie; }
+
+            @Override public World world() { return zombie.getWorld(); }
+
+            @Override public boolean tick() {
+                Player target = zombie.isValid() ? Support.target(zombie) : null;
+                if (target == null || ++ticks > 60 || ticks > 3 && zombie.isOnGround()) { return false; }
+                Location from = zombie.getLocation();
+                Location to = target.getLocation();
+                if (from.getY() >= to.getY() - 0.2) {
+                    Vector push = Support.flatDirection(from, to).multiply(Math.min(0.3, Support.horizontalDistance(from, to) * 0.5));
+                    zombie.setVelocity(push.setY(zombie.getVelocity().getY()));
+                }
+                return true;
+            }
+
+            @Override public void end() {}
         }
     }
 
@@ -220,8 +252,14 @@ final class SimpleAbilities {
         private void scream(Zombie zombie, double radius) {
             World world = zombie.getWorld();
             Location head = zombie.getEyeLocation();
-            world.playSound(head, Sound.BLOCK_SCULK_SHRIEKER_SHRIEK, 3f, 0.9f);
-            world.playSound(head, Sound.ENTITY_WARDEN_ROAR, 3f, 0.8f);
+            world.playSound(head, Sound.ENTITY_ENDERMAN_STARE, 3f, 1.3f);
+            world.playSound(head, Sound.ENTITY_ELDER_GUARDIAN_CURSE, 2f, 1.4f);
+            for (int step = 0; step < 6; step++) {
+                float pitch = 1.0f + step * 0.15f;
+                core.runLater(1 + step * 5L, () -> {
+                    if (zombie.isValid()) { zombie.getWorld().playSound(zombie.getEyeLocation(), Sound.ENTITY_GHAST_SCREAM, 3f, pitch); }
+                });
+            }
             for (int index = 0; index < 3; index++) {
                 world.spawnParticle(Particle.SHRIEK, head, 1, 0, 0, 0, 0, index * 5);
             }

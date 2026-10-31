@@ -8,6 +8,7 @@ import io.github.beddeak.zombie.zombie.Attributes;
 import io.github.beddeak.zombie.zombie.Keys;
 import io.github.beddeak.zombie.zombie.SpawnContext;
 import io.github.beddeak.zombie.zombie.Tags;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -20,6 +21,8 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.block.Block;
+import org.bukkit.block.Container;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -31,6 +34,7 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.joml.AxisAngle4f;
@@ -38,6 +42,7 @@ import org.joml.Vector3f;
 
 public final class TankAbility implements Ability {
     private static final double SLAM_RADIUS = 4.5;
+    private static final int MAX_SMASH = 64;
     private final Apocalypse core;
     private final Set<UUID> throwing = new HashSet<>();
     private boolean special;
@@ -68,6 +73,7 @@ public final class TankAbility implements Ability {
         Settings.Tank options = core.settings().tank();
         Player target = Support.targetOrNearest(zombie, 48);
         if (target != null && zombie.getTarget() != target) { zombie.setTarget(target); }
+        if (target != null && options.breakBlocks()) { smash(zombie, target, options); }
         boolean phaseTwo = zombie.getPersistentDataContainer().has(Keys.PHASE_TWO, PersistentDataType.BYTE);
         if (!phaseTwo && zombie.getHealth() <= Attributes.maxHealth(zombie) / 2) {
             zombie.getPersistentDataContainer().set(Keys.PHASE_TWO, PersistentDataType.BYTE, (byte) 1);
@@ -90,6 +96,38 @@ public final class TankAbility implements Ability {
             throwing.add(zombie.getUniqueId());
             core.effects().add(new Rock(zombie, target));
         }
+    }
+
+    private void smash(Zombie zombie, Player target, Settings.Tank options) {
+        World world = zombie.getWorld();
+        Location at = zombie.getLocation();
+        Vector direction = Support.flatDirection(at, target.getLocation());
+        BoundingBox box = zombie.getBoundingBox().expand(0.3, 0, 0.3).expandDirectional(direction.multiply(1.0));
+        int bottom = (int) Math.floor(box.getMinY() + 0.05) + (target.getLocation().getY() > at.getY() + 0.8 ? 1 : 0);
+        List<Block> blocks = new ArrayList<>();
+        for (int x = (int) Math.floor(box.getMinX()); x <= (int) Math.floor(box.getMaxX() - 1.0E-6) && blocks.size() < MAX_SMASH; x++) {
+            for (int z = (int) Math.floor(box.getMinZ()); z <= (int) Math.floor(box.getMaxZ() - 1.0E-6) && blocks.size() < MAX_SMASH; z++) {
+                for (int y = bottom; y <= (int) Math.floor(box.getMaxY() - 1.0E-6) && blocks.size() < MAX_SMASH; y++) {
+                    Block block = world.getBlockAt(x, y, z);
+                    float hardness = block.getType().getHardness();
+                    if (block.getType().isAir() || block.isLiquid() || hardness < 0 || hardness > options.breakMaxHardness()) { continue; }
+                    blocks.add(block);
+                }
+            }
+        }
+        core.ending().protect(world, blocks);
+        blocks.removeIf(core.assembly()::protects);
+        if (blocks.isEmpty()) { return; }
+        for (Block block : blocks) {
+            if (block.getState(false) instanceof Container) {
+                block.breakNaturally();
+                continue;
+            }
+            world.spawnParticle(Particle.BLOCK, block.getLocation().add(0.5, 0.5, 0.5), 8, 0.3, 0.3, 0.3, block.getBlockData());
+            block.setType(Material.AIR);
+        }
+        world.playSound(at, Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR, 2f, 0.5f);
+        world.playSound(at, Sound.ENTITY_GENERIC_EXPLODE, 0.6f, 1.4f);
     }
 
     @Override public void attacked(Zombie zombie, Player victim, EntityDamageByEntityEvent event) {

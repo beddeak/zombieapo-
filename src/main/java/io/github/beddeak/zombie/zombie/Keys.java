@@ -14,6 +14,7 @@ public final class Keys {
     public static final NamespacedKey MARK = key("mark");
     public static final NamespacedKey STOLEN_FROM = key("stolen_from");
     public static final NamespacedKey VICTIM = key("victim");
+    public static final NamespacedKey WIND_UP = key("wind_up");
     public static final NamespacedKey PHASE_TWO = key("phase_two");
     public static final NamespacedKey HELPER = key("helper");
     public static final NamespacedKey RADIO_ITEM = key("radio");
@@ -21,6 +22,7 @@ public final class Keys {
     public static final NamespacedKey ANTENNA_ITEM = key("antenna");
     public static final NamespacedKey ANTENNA_RECIPE = key("antenna");
     public static final NamespacedKey EGG = key("egg");
+    public static final NamespacedKey MOLOTOV = key("molotov");
 
     public static final NamespacedKey MOD_FOLLOW_RANGE = key("follow_range");
     public static final NamespacedKey MOD_DAY_HEALTH = key("day_health");
@@ -33,6 +35,8 @@ public final class Keys {
     public static final NamespacedKey MOD_TYPE_SCALE = key("type_scale");
     public static final NamespacedKey MOD_TYPE_KNOCKBACK = key("type_knockback");
     public static final NamespacedKey MOD_NO_FALL = key("no_fall");
+    public static final NamespacedKey MOD_DOWNED_SPEED = key("downed_speed");
+    public static final NamespacedKey MOD_DOWNED_JUMP = key("downed_jump");
     public static final NamespacedKey MOD_PHASE_TWO = key("phase_two_speed");
 
     private Keys() {}

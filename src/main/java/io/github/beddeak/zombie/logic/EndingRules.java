@@ -39,8 +39,23 @@ public final class EndingRules {
         return dy == 0 && Math.abs(dx) + Math.abs(dz) == 1;
     }
 
-    public static boolean escapeOver(int escaped, int stillRunning, int remainingTicks) {
-        return remainingTicks <= 0 || (escaped > 0 && stillRunning == 0);
+    public static boolean helicopterLeaves(int standing, int standingAboard, int remainingTicks) {
+        return remainingTicks <= 0 || (standing > 0 && standingAboard >= standing);
+    }
+
+    public record Credit(String title, String subtitle) {}
+
+    public static List<Credit> credits(int day, List<String> saved, List<String> left, List<String> awards) {
+        List<Credit> credits = new ArrayList<>();
+        credits.add(new Credit("좀비 아포칼립스", day + "일 동안 살아남았습니다"));
+        credits.add(new Credit("탈출한 생존자", saved.isEmpty() ? "아무도 탈출하지 못했습니다" : String.join(", ", saved)));
+        if (!left.isEmpty()) { credits.add(new Credit("남겨진 사람들", String.join(", ", left))); }
+        for (String award : awards) {
+            int colon = award.indexOf(": ");
+            credits.add(colon < 0 ? new Credit(award, "") : new Credit(award.substring(0, colon), award.substring(colon + 2)));
+        }
+        credits.add(new Credit("plugin made by beddeak(침댁)", "플레이해 주셔서 감사합니다"));
+        return credits;
     }
 
     public static int[] column(double centerX, double centerZ, double angle, double distance) {

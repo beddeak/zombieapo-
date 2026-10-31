@@ -47,16 +47,22 @@ class SettingsTest {
         assertFalse(settings.replace().reasons().contains(SpawnReason.SPAWNER_EGG));
         assertTrue(settings.replace().exclude().contains(EntityType.ENDER_DRAGON));
         assertEquals(300, settings.ending().finale().seconds());
+        assertTrue(settings.ending().finale().bloodMoon());
+        assertEquals(new Settings.Molotov(3.5, 10, 4, 1.5, 8, true), settings.molotov());
+        assertTrue(settings.handLight());
+        assertFalse(settings.allowSleep());
+        assertEquals(new Settings.Downed(true, 60, 5, 2.5, 6, 0.15), settings.downed());
         assertEquals(100, settings.ending().escape().distance());
         assertEquals(180, settings.ending().escape().seconds());
         assertEquals(List.of("DRD", "RHR", "TBT"), settings.ending().radioRecipe().rows());
         assertEquals(java.util.Map.of('D', Material.DIAMOND_BLOCK, 'R', Material.REDSTONE_BLOCK, 'H', Material.HEART_OF_THE_SEA,
-                'T', Material.REDSTONE_TORCH, 'B', Material.NOTE_BLOCK), settings.ending().radioRecipe().keys());
+                'T', Material.REDSTONE_TORCH, 'B', Material.JUKEBOX), settings.ending().radioRecipe().keys());
         assertTrue(settings.tank().loot().stream().noneMatch(loot -> loot.material() == Material.HEART_OF_THE_SEA || loot.material() == Material.DIAMOND));
         assertEquals(3, settings.horde().regularEveryDays());
         assertEquals(6, settings.start().graceSeconds());
         assertEquals(180, settings.start().quietSurfaceSeconds());
         assertEquals(new Settings.Daylight(true, 0.25, 1), settings.spawning().daylight());
+        assertEquals(7, settings.spawning().maxBlockLight());
         assertEquals(Material.END_ROD, settings.ending().antennaBlock());
         assertEquals(List.of(" C ", "BRB", " C "), settings.ending().antennaRecipe().rows());
         assertEquals(java.util.Map.of('C', Material.IRON_CHAIN, 'B', Material.BLAZE_ROD, 'R', Material.REDSTONE),
@@ -90,7 +96,7 @@ class SettingsTest {
         assertEquals(20, settings.spawning().minDistance());
         assertEquals(40, settings.spawning().maxDistance());
         assertEquals(3.0, settings.types().boomer().power());
-        assertEquals(8, settings.types().spawn(ZombieType.BOOMER).weight());
+        assertEquals(6, settings.types().spawn(ZombieType.BOOMER).weight());
         assertEquals(2, settings.horde().wavesMin());
         assertEquals(3, settings.horde().wavesMax());
         assertEquals(List.of(new Settings.Loot(Material.EMERALD, 4)), settings.tank().loot());
